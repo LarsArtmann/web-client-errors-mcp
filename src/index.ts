@@ -170,95 +170,32 @@ async function takePageScreenshot(page: Page): Promise<string> {
   }
 }
 
-// Tool: detect_errors
+// Tool handlers for all three tools
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name !== 'detect_errors') {
-    return { 
-      content: [{ 
-        type: 'text', 
-        text: JSON.stringify({ error: 'Unknown tool' }) 
-      }] 
-    };
-  }
-
+  const { name } = request.params;
+  
   try {
-    const options = DetectErrorsSchema.parse(request.params.arguments);
-    const browser = await initializeBrowser();
-    const context = await browser.newContext({
-      viewport: { width: 1920, height: 1080 },
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    });
-    
-    const page = await context.newPage();
-    const session = createErrorSession(options.url, options.sessionId || undefined);
-    sessions.set(session.id, session);
-    session.browserContext = context;
-
-    // Set up error detection before navigation
-    await detectPageErrors(page, session, options);
-
-    // Navigate to page
-    await page.goto(options.url, { 
-      waitUntil: 'networkidle',
-      timeout: 30000 
-    });
-
-    // Optional page interaction to trigger errors
-    if (options.interactWithPage) {
-      await page.waitForTimeout(1000);
-      await page.click('body');
-      await page.keyboard.press('Tab');
-      await page.waitForTimeout(2000);
+    switch (name) {
+      case 'detect_errors':
+        return await handleDetectErrors(request);
+      case 'analyze_error_session':
+        return await handleAnalyzeErrorSession(request);
+      case 'get_error_details':
+        return await handleGetErrorDetails(request);
+      default:
+        return { 
+          content: [{ 
+            type: 'text', 
+            text: JSON.stringify({ error: 'Unknown tool' }) 
+          }] 
+        };
     }
-
-    // Wait for errors to occur
-    await page.waitForTimeout(options.waitTime);
-
-    // Take screenshot if requested
-    if (options.captureScreenshot) {
-      const screenshot = await takePageScreenshot(page);
-      if (screenshot) {
-        session.screenshots?.push(screenshot);
-      }
-    }
-
-    // Close page and context
-    await page.close();
-    await context.close();
-
-    const errorSummary = {
-      sessionId: session.id,
-      url: session.url,
-      timestamp: session.startTime,
-      totalErrors: session.errors.length,
-      errorsByType: {
-        javascript: session.errors.filter(e => e.type === 'javascript').length,
-        console: session.errors.filter(e => e.type === 'console').length,
-        network: session.errors.filter(e => e.type === 'network').length,
-        resource: session.errors.filter(e => e.type === 'resource').length
-      },
-      errorsBySeverity: {
-        error: session.errors.filter(e => e.severity === 'error').length,
-        warning: session.errors.filter(e => e.severity === 'warning').length,
-        info: session.errors.filter(e => e.severity === 'info').length
-      },
-      hasScreenshot: options.captureScreenshot && session.screenshots && session.screenshots.length > 0,
-      errors: session.errors
-    };
-
-    return {
-      content: [{ 
-        type: 'text', 
-        text: JSON.stringify(errorSummary, null, 2) 
-      }]
-    };
-
   } catch (error) {
     return {
       content: [{ 
         type: 'text', 
         text: JSON.stringify({ 
-          error: 'Detection failed', 
+          error: 'Tool execution failed', 
           details: error instanceof Error ? error.message : String(error)
         }) 
       }]
@@ -266,130 +203,157 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// Tool: analyze_error_session
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name !== 'analyze_error_session') {
-    return { 
-      content: [{ 
-        type: 'text', 
-        text: JSON.stringify({ error: 'Unknown tool' }) 
-      }] 
-    };
+async function handleDetectErrors(request: any) {
+  const options = DetectErrorsSchema.parse(request.params.arguments);
+  const browser = await initializeBrowser();
+  const context = await browser.newContext({
+    viewport: { width: 1920, height: 1080 },
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+  });
+  
+  const page = await context.newPage();
+  const session = createErrorSession(options.url, options.sessionId || undefined);
+  sessions.set(session.id, session);
+  session.browserContext = context;
+
+  // Set up error detection before navigation
+  await detectPageErrors(page, session, options);
+
+  // Navigate to page
+  await page.goto(options.url, { 
+    waitUntil: 'networkidle',
+    timeout: 30000 
+  });
+
+  // Optional page interaction to trigger errors
+  if (options.interactWithPage) {
+    await page.waitForTimeout(1000);
+    await page.click('body');
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(2000);
   }
 
-  try {
-    const options = AnalyzeErrorsSchema.parse(request.params.arguments);
-    const session = sessions.get(options.sessionId);
+  // Wait for errors to occur
+  await page.waitForTimeout(options.waitTime);
 
-    if (!session) {
-      return {
-        content: [{ 
-          type: 'text', 
-          text: JSON.stringify({ error: 'Session not found' }) 
-        }]
-      };
+  // Take screenshot if requested
+  if (options.captureScreenshot) {
+    const screenshot = await takePageScreenshot(page);
+    if (screenshot) {
+      session.screenshots?.push(screenshot);
     }
+  }
 
-    let filteredErrors = session.errors;
-    if (options.severity !== 'all') {
-      filteredErrors = session.errors.filter(e => e.severity === options.severity);
-    }
+  // Close page and context
+  await page.close();
+  await context.close();
 
-    const analysis = {
-      sessionId: session.id,
-      url: session.url,
-      timestamp: session.startTime,
-      totalErrors: filteredErrors.length,
-      errorPatterns: analyzeErrorPatterns(filteredErrors),
-      commonErrors: getMostCommonErrors(filteredErrors),
-      suggestions: options.includeSuggestions ? generateErrorSuggestions(filteredErrors) : [],
-      timeline: generateErrorTimeline(filteredErrors),
-      severityBreakdown: {
-        error: filteredErrors.filter(e => e.severity === 'error').length,
-        warning: filteredErrors.filter(e => e.severity === 'warning').length,
-        info: filteredErrors.filter(e => e.severity === 'info').length
-      }
-    };
+  const errorSummary = {
+    sessionId: session.id,
+    url: session.url,
+    timestamp: session.startTime,
+    totalErrors: session.errors.length,
+    errorsByType: {
+      javascript: session.errors.filter(e => e.type === 'javascript').length,
+      console: session.errors.filter(e => e.type === 'console').length,
+      network: session.errors.filter(e => e.type === 'network').length,
+      resource: session.errors.filter(e => e.type === 'resource').length
+    },
+    errorsBySeverity: {
+      error: session.errors.filter(e => e.severity === 'error').length,
+      warning: session.errors.filter(e => e.severity === 'warning').length,
+      info: session.errors.filter(e => e.severity === 'info').length
+    },
+    hasScreenshot: options.captureScreenshot && session.screenshots && session.screenshots.length > 0,
+    errors: session.errors
+  };
 
+  return {
+    content: [{ 
+      type: 'text', 
+      text: JSON.stringify(errorSummary, null, 2) 
+    }]
+  };
+}
+
+async function handleAnalyzeErrorSession(request: any) {
+  const options = AnalyzeErrorsSchema.parse(request.params.arguments);
+  const session = sessions.get(options.sessionId);
+
+  if (!session) {
     return {
       content: [{ 
         type: 'text', 
-        text: JSON.stringify(analysis, null, 2) 
-      }]
-    };
-
-  } catch (error) {
-    return {
-      content: [{ 
-        type: 'text', 
-        text: JSON.stringify({ 
-          error: 'Analysis failed', 
-          details: error instanceof Error ? error.message : String(error)
-        }) 
+        text: JSON.stringify({ error: 'Session not found' }) 
       }]
     };
   }
-});
 
-// Tool: get_error_details
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name !== 'get_error_details') {
-    return { 
-      content: [{ 
-        type: 'text', 
-        text: JSON.stringify({ error: 'Unknown tool' }) 
-      }] 
-    };
+  let filteredErrors = session.errors;
+  if (options.severity !== 'all') {
+    filteredErrors = session.errors.filter(e => e.severity === options.severity);
   }
 
-  try {
-    const options = GetErrorDetailsSchema.parse(request.params.arguments);
-    
-    // Find error across all sessions
-    let targetError: WebError | null = null;
-    for (const session of sessions.values()) {
-      const error = session.errors.find(e => e.message.includes(options.errorId) || e.stack?.includes(options.errorId));
-      if (error) {
-        targetError = error;
-        break;
-      }
+  const analysis = {
+    sessionId: session.id,
+    url: session.url,
+    timestamp: session.startTime,
+    totalErrors: filteredErrors.length,
+    errorPatterns: analyzeErrorPatterns(filteredErrors),
+    commonErrors: getMostCommonErrors(filteredErrors),
+    suggestions: options.includeSuggestions ? generateErrorSuggestions(filteredErrors) : [],
+    timeline: generateErrorTimeline(filteredErrors),
+    severityBreakdown: {
+      error: filteredErrors.filter(e => e.severity === 'error').length,
+      warning: filteredErrors.filter(e => e.severity === 'warning').length,
+      info: filteredErrors.filter(e => e.severity === 'info').length
     }
+  };
 
-    if (!targetError) {
-      return {
-        content: [{ 
-          type: 'text', 
-          text: JSON.stringify({ error: 'Error not found' }) 
-        }]
-      };
+  return {
+    content: [{ 
+      type: 'text', 
+      text: JSON.stringify(analysis, null, 2) 
+    }]
+  };
+}
+
+async function handleGetErrorDetails(request: any) {
+  const options = GetErrorDetailsSchema.parse(request.params.arguments);
+  
+  // Find error across all sessions
+  let targetError: WebError | null = null;
+  for (const session of sessions.values()) {
+    const error = session.errors.find(e => e.message.includes(options.errorId) || e.stack?.includes(options.errorId));
+    if (error) {
+      targetError = error;
+      break;
     }
+  }
 
-    const details = {
-      ...targetError,
-      suggestions: generateErrorSuggestions([targetError]),
-      relatedPatterns: findRelatedErrorPatterns(targetError),
-      potentialCauses: analyzePotentialCauses(targetError)
-    };
-
+  if (!targetError) {
     return {
       content: [{ 
         type: 'text', 
-        text: JSON.stringify(details, null, 2) 
-      }]
-    };
-
-  } catch (error) {
-    return {
-      content: [{ 
-        type: 'text', 
-        text: JSON.stringify({ 
-          error: 'Details retrieval failed', 
-          details: error instanceof Error ? error.message : String(error)
-        }) 
+        text: JSON.stringify({ error: 'Error not found' }) 
       }]
     };
   }
-});
+
+  const details = {
+    ...targetError,
+    suggestions: generateErrorSuggestions([targetError]),
+    relatedPatterns: findRelatedErrorPatterns(targetError),
+    potentialCauses: analyzePotentialCauses(targetError)
+  };
+
+  return {
+    content: [{ 
+      type: 'text', 
+      text: JSON.stringify(details, null, 2) 
+    }]
+  };
+}
 
 // Resource handlers for accessing error data
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
