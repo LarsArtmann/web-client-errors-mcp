@@ -51,9 +51,27 @@ interface ErrorSession {
   id: string;
   url: string;
   startTime: string;
+  endTime?: string;
+  duration?: number;
   errors: WebError[];
   screenshots?: string[];
   browserContext?: BrowserContext;
+  metadata: SessionMetadata;
+}
+
+interface SessionMetadata {
+  userAgent: string;
+  viewport: { width: number; height: number };
+  platform: string;
+  language: string;
+  cookiesEnabled: boolean;
+  javascriptEnabled: boolean;
+  onlineStatus: boolean;
+  performanceMetrics?: {
+    domContentLoaded: number;
+    loadComplete: number;
+    firstContentfulPaint?: number;
+  };
 }
 
 // Global error session management
