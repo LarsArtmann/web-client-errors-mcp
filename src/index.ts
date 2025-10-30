@@ -11,16 +11,40 @@ import {
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { z } from 'zod';
 
-// Error detection interface based on research of existing patterns
+// Enhanced error detection interfaces with better type safety
 interface WebError {
+  id: string;
   message: string;
-  type: 'javascript' | 'console' | 'network' | 'resource';
+  type: 'javascript' | 'console' | 'network' | 'resource' | 'performance' | 'security';
   stack?: string;
   url?: string;
   line?: number;
   column?: number;
   timestamp: string;
-  severity: 'error' | 'warning' | 'info';
+  severity: 'error' | 'warning' | 'info' | 'critical';
+  category: string;
+  context?: ErrorContext;
+  frequency?: number;
+}
+
+interface ErrorContext {
+  userAgent: string;
+  viewport: { width: number; height: number };
+  url: string;
+  domSnapshot?: string;
+  networkConditions?: {
+    online: boolean;
+    connectionType?: string;
+    effectiveType?: string;
+  };
+}
+
+interface ErrorPattern {
+  name: string;
+  regex: RegExp;
+  category: string;
+  severity: WebError['severity'];
+  suggestions: string[];
 }
 
 interface ErrorSession {
