@@ -11,6 +11,8 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { z } from 'zod';
+import { initializeLogging, getAppLogger } from './logger.js';
+import { getConfig } from './config.js';
 
 // Enhanced error detection interfaces with better type safety
 interface WebError {
@@ -69,6 +71,7 @@ interface SessionMetadata {
   cookiesEnabled: boolean;
   javascriptEnabled: boolean;
   onlineStatus: boolean;
+  domSnapshot?: string;
   performanceMetrics?: {
     domContentLoaded: number;
     loadComplete: number;
@@ -146,6 +149,10 @@ const ERROR_PATTERNS: ErrorPattern[] = [
   }
 ];
 
+// Initialize logging
+initializeLogging();
+const logger = getAppLogger('main');
+
 // Global error session management
 const sessions = new Map<string, ErrorSession>();
 let browser: Browser | null = null;
@@ -190,6 +197,10 @@ const server = new Server(
 // Enhanced helper functions for intelligent error processing
 function createErrorSession(url: string, sessionId?: string): ErrorSession {
   const id = sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const config = getConfig();
+  
+  logger.info('Creating new error session', { sessionId: id, url });
+  
   return {
     id,
     url,
@@ -197,8 +208,8 @@ function createErrorSession(url: string, sessionId?: string): ErrorSession {
     errors: [],
     screenshots: [],
     metadata: {
-      userAgent: 'Mozilla/5.0 (Web Client Errors MCP)',
-      viewport: { width: 1920, height: 1080 },
+      userAgent: config.browser.userAgent,
+      viewport: config.browser.viewport,
       platform: 'unknown',
       language: 'en-US',
       cookiesEnabled: true,
@@ -242,21 +253,30 @@ function classifyError(error: Partial<WebError>): WebError {
 }
 
 function enrichErrorContext(error: WebError, page: Page): WebError {
+  const config = getConfig();
+  
   return {
     ...error,
     context: {
-      userAgent: 'Mozilla/5.0 (Web Client Errors MCP)',
-      viewport: { width: 1920, height: 1080 },
+      userAgent: config.browser.userAgent,
+      viewport: config.browser.viewport,
       url: page.url()
     }
   };
 }
 
 async function initializeBrowser(): Promise<Browser> {
+  const config = getConfig();
+  
   if (!browser || !browser.isConnected()) {
+    logger.info('Initializing browser with configuration', { 
+      headless: config.browser.headless,
+      args: config.browser.args 
+    });
+    
     browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      headless: config.browser.headless,
+      args: config.browser.args
     });
   }
   return browser;
@@ -264,6 +284,9 @@ async function initializeBrowser(): Promise<Browser> {
 
 async function detectPageErrors(page: Page, session: ErrorSession, options: z.infer<typeof DetectErrorsSchema>): Promise<void> {
   const errors: WebError[] = [];
+  const config = getConfig();
+  
+  logger.debug('Setting up error detection for session', { sessionId: session.id });
 
   // Enhanced JavaScript error detection with classification
   page.on('pageerror', (error) => {
@@ -349,28 +372,38 @@ async function detectPageErrors(page: Page, session: ErrorSession, options: z.in
   });
 
   // Performance monitoring
-  page.on('response', (response) => {
-    const timing = response.request().timing();
-    if (timing && timing.responseEnd > 10000) { // 10 second threshold
-      const baseError: Partial<WebError> = {
-        message: `Slow response detected: ${response.url()} took ${timing.responseEnd}ms`,
-        type: 'performance',
-        url: response.url(),
-        timestamp: new Date().toISOString(),
-        severity: 'warning'
-      };
-      
-      const classifiedError = classifyError(baseError);
-      const enrichedError = enrichErrorContext(classifiedError, page);
-      
-      session.errors.push(enrichedError);
-      errors.push(enrichedError);
-    }
-  });
+  if (getConfig().features.performanceMetrics) {
+    page.on('response', (response) => {
+      const timing = response.request().timing();
+      const config = getConfig();
+      if (timing && timing.responseEnd > config.thresholds.slowResponse) {
+        const baseError: Partial<WebError> = {
+          message: `Slow response detected: ${response.url()} took ${timing.responseEnd}ms`,
+          type: 'performance',
+          url: response.url(),
+          timestamp: new Date().toISOString(),
+          severity: 'warning'
+        };
+        
+        const classifiedError = classifyError(baseError);
+        const enrichedError = enrichErrorContext(classifiedError, page);
+        
+        session.errors.push(enrichedError);
+        errors.push(enrichedError);
+        
+        logger.warn('Slow response detected', { 
+          url: response.url(), 
+          responseTime: timing.responseEnd,
+          threshold: config.thresholds.slowResponse 
+        });
+      }
+    });
+  }
 }
 
 async function takePageScreenshot(page: Page): Promise<string> {
   try {
+    logger.debug('Taking page screenshot');
     const screenshot = await page.screenshot({ 
       type: 'png',
       fullPage: true,
@@ -378,7 +411,18 @@ async function takePageScreenshot(page: Page): Promise<string> {
     });
     return screenshot.toString('base64');
   } catch (error) {
-    console.error('Failed to take screenshot:', error);
+    logger.error('Failed to take screenshot', { error: error instanceof Error ? error.message : String(error) });
+    return '';
+  }
+}
+
+async function captureDOMSnapshot(page: Page): Promise<string> {
+  try {
+    logger.debug('Capturing DOM snapshot');
+    const snapshot = await page.content();
+    return Buffer.from(snapshot).toString('base64');
+  } catch (error) {
+    logger.error('Failed to capture DOM snapshot', { error: error instanceof Error ? error.message : String(error) });
     return '';
   }
 }
@@ -419,9 +463,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function handleDetectErrors(request: any) {
   const options = DetectErrorsSchema.parse(request.params.arguments);
   const browser = await initializeBrowser();
+  const config = getConfig();
   const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    viewport: config.browser.viewport,
+    userAgent: config.browser.userAgent
   });
   
   const page = await context.newPage();
@@ -454,12 +499,63 @@ async function handleDetectErrors(request: any) {
     const screenshot = await takePageScreenshot(page);
     if (screenshot) {
       session.screenshots?.push(screenshot);
+      logger.debug('Screenshot captured', { sessionId: session.id });
+    }
+  }
+
+  // Capture performance metrics if enabled
+  if (getConfig().features.performanceMetrics) {
+    try {
+      const performanceData = await page.evaluate(() => {
+        const navigation = performance.getEntriesByType('navigation' as any)[0] as PerformanceNavigationTiming;
+        if (!navigation) return null;
+        
+        return {
+          domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+          loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
+          firstContentfulPaint: performance.getEntriesByType('paint' as any)
+            .filter((entry: any) => entry.name === 'first-contentful-paint')[0]?.startTime
+        };
+      });
+      
+      if (performanceData && session.metadata) {
+        session.metadata.performanceMetrics = performanceData;
+        logger.debug('Performance metrics captured', { 
+          sessionId: session.id,
+          metrics: performanceData 
+        });
+      }
+    } catch (error) {
+      logger.warn('Failed to capture performance metrics', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  }
+
+  // Capture DOM snapshot if enabled
+  if (getConfig().features.domSnapshots && session.metadata) {
+    const domSnapshot = await captureDOMSnapshot(page);
+    if (domSnapshot) {
+      session.metadata.domSnapshot = domSnapshot;
+      logger.debug('DOM snapshot captured', { sessionId: session.id });
     }
   }
 
   // Close page and context
   await page.close();
   await context.close();
+  
+  // Calculate session duration
+  const endTime = new Date().toISOString();
+  const duration = new Date(endTime).getTime() - new Date(session.startTime).getTime();
+  session.endTime = endTime;
+  session.duration = duration;
+  
+  logger.info('Error detection session completed', {
+    sessionId: session.id,
+    duration,
+    totalErrors: session.errors.length
+  });
 
   const errorSummary = {
     sessionId: session.id,
