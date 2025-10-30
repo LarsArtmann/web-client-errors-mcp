@@ -34,8 +34,8 @@ This MCP server is purpose-built for CRUSH's MCP architecture, enabling AI codin
 ```bash
 git clone https://github.com/LarsArtmann/web-client-errors-mcp.git
 cd web-client-errors-mcp
-npm install
-npm run build
+bun install
+bun run build
 ```
 
 ### Step 2: Configure CRUSH
@@ -45,8 +45,8 @@ Add to your `.mcp.json`:
 {
   "mcpServers": {
     "web-client-errors": {
-      "command": "node",
-      "args": ["/path/to/web-client-errors-mcp/dist/index.js"],
+      "command": "bun",
+      "args": ["run", "/path/to/web-client-errors-mcp/dist/index.js"],
       "env": {
         "NODE_ENV": "production"
       }
