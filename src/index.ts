@@ -13,6 +13,7 @@ import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { z } from 'zod';
 import { initializeLogging, getAppLogger } from './logger.js';
 import { getConfig } from './config.js';
+import type { MCPResponse } from './types.js';
 
 // Enhanced error detection interfaces with better type safety
 interface WebError {
@@ -284,7 +285,6 @@ async function initializeBrowser(): Promise<Browser> {
 
 async function detectPageErrors(page: Page, session: ErrorSession, options: z.infer<typeof DetectErrorsSchema>): Promise<void> {
   const errors: WebError[] = [];
-  const config = getConfig();
   
   logger.debug('Setting up error detection for session', { sessionId: session.id });
 
@@ -460,7 +460,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-async function handleDetectErrors(request: any) {
+async function handleDetectErrors(request: any): Promise<MCPResponse> {
   const options = DetectErrorsSchema.parse(request.params.arguments);
   const browser = await initializeBrowser();
   const config = getConfig();
@@ -507,12 +507,12 @@ async function handleDetectErrors(request: any) {
   if (getConfig().features.performanceMetrics) {
     try {
       const performanceData = await page.evaluate(() => {
-        const navigation = performance.getEntriesByType('navigation' as any)[0] as PerformanceNavigationTiming;
+        const navigation = performance.getEntriesByType('navigation' as any)[0] as any;
         if (!navigation) return null;
         
         return {
-          domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
-          loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
+          domContentLoaded: (navigation.domContentLoadedEventEnd || 0) - (navigation.domContentLoadedEventStart || 0),
+          loadComplete: (navigation.loadEventEnd || 0) - (navigation.loadEventStart || 0),
           firstContentfulPaint: performance.getEntriesByType('paint' as any)
             .filter((entry: any) => entry.name === 'first-contentful-paint')[0]?.startTime
         };
@@ -585,7 +585,7 @@ async function handleDetectErrors(request: any) {
   };
 }
 
-async function handleAnalyzeErrorSession(request: any) {
+async function handleAnalyzeErrorSession(request: any): Promise<MCPResponse> {
   const options = AnalyzeErrorsSchema.parse(request.params.arguments);
   const session = sessions.get(options.sessionId);
 
@@ -627,7 +627,7 @@ async function handleAnalyzeErrorSession(request: any) {
   };
 }
 
-async function handleGetErrorDetails(request: any) {
+async function handleGetErrorDetails(request: any): Promise<MCPResponse> {
   const options = GetErrorDetailsSchema.parse(request.params.arguments);
   
   // Find error across all sessions
