@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'crypto';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { 
@@ -25,6 +26,7 @@ interface WebError {
   category: string;
   context?: ErrorContext;
   frequency?: number;
+  suggestions?: string[];
 }
 
 interface ErrorContext {
@@ -207,9 +209,7 @@ function createErrorSession(url: string, sessionId?: string): ErrorSession {
 }
 
 function generateErrorId(error: WebError): string {
-  const crypto = require('crypto');
-  const hash = crypto
-    .createHash('md5')
+  const hash = createHash('md5')
     .update(`${error.message}-${error.type}-${error.timestamp}`)
     .digest('hex')
     .substring(0, 8);
@@ -729,6 +729,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     ]
   };
 });
+
+// Export functions for testing
+export { classifyError, generateErrorId, createErrorSession, ERROR_PATTERNS };
 
 // Helper functions for error analysis
 function analyzeErrorPatterns(errors: WebError[]): string[] {
