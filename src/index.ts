@@ -74,6 +74,76 @@ interface SessionMetadata {
   };
 }
 
+// Enhanced error pattern definitions for intelligent classification
+const ERROR_PATTERNS: ErrorPattern[] = [
+  {
+    name: 'TypeError: Undefined Property',
+    regex: /TypeError: Cannot read propert(?:y|ies) of (undefined|null)/,
+    category: 'Property Access',
+    severity: 'error',
+    suggestions: [
+      'Check variable initialization before access',
+      'Use optional chaining (?.) for safer property access',
+      'Add null/undefined checks before property access'
+    ]
+  },
+  {
+    name: 'ReferenceError: Not Defined',
+    regex: /ReferenceError: \w+ is not defined/,
+    category: 'Variable Reference',
+    severity: 'error',
+    suggestions: [
+      'Verify variable declaration',
+      'Check for typos in variable names',
+      'Ensure proper scope and hoisting'
+    ]
+  },
+  {
+    name: 'Network Error',
+    regex: /NetworkError|Failed to fetch|CORS|Access-Control-Allow-Origin/,
+    category: 'Network',
+    severity: 'error',
+    suggestions: [
+      'Check network connectivity',
+      'Verify CORS configuration',
+      'Validate API endpoint availability'
+    ]
+  },
+  {
+    name: 'Promise Rejection',
+    regex: /UnhandledPromiseRejectionWarning|Promise rejected/,
+    category: 'Async Handling',
+    severity: 'warning',
+    suggestions: [
+      'Add .catch() handler to promises',
+      'Use try/catch with async/await',
+      'Implement proper error boundaries'
+    ]
+  },
+  {
+    name: '404 Not Found',
+    regex: /404|Not Found/,
+    category: 'Resource',
+    severity: 'error',
+    suggestions: [
+      'Verify resource URL exists',
+      'Check file path spelling',
+      'Confirm deployment included all assets'
+    ]
+  },
+  {
+    name: '500 Server Error',
+    regex: /500|Internal Server Error/,
+    category: 'Server',
+    severity: 'critical',
+    suggestions: [
+      'Check server logs for details',
+      'Verify server configuration',
+      'Contact server administrator if needed'
+    ]
+  }
+];
+
 // Global error session management
 const sessions = new Map<string, ErrorSession>();
 let browser: Browser | null = null;
