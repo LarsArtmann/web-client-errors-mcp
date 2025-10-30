@@ -185,7 +185,7 @@ const server = new Server(
   }
 );
 
-// Helper functions based on KeyCountdown patterns
+// Enhanced helper functions for intelligent error processing
 function createErrorSession(url: string, sessionId?: string): ErrorSession {
   const id = sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   return {
@@ -193,7 +193,62 @@ function createErrorSession(url: string, sessionId?: string): ErrorSession {
     url,
     startTime: new Date().toISOString(),
     errors: [],
-    screenshots: []
+    screenshots: [],
+    metadata: {
+      userAgent: 'Mozilla/5.0 (Web Client Errors MCP)',
+      viewport: { width: 1920, height: 1080 },
+      platform: 'unknown',
+      language: 'en-US',
+      cookiesEnabled: true,
+      javascriptEnabled: true,
+      onlineStatus: true
+    }
+  };
+}
+
+function generateErrorId(error: WebError): string {
+  const crypto = require('crypto');
+  const hash = crypto
+    .createHash('md5')
+    .update(`${error.message}-${error.type}-${error.timestamp}`)
+    .digest('hex')
+    .substring(0, 8);
+  return `error-${hash}`;
+}
+
+function classifyError(error: Partial<WebError>): WebError {
+  const message = error.message || '';
+  const baseError: WebError = {
+    id: generateErrorId(error as WebError),
+    message,
+    type: error.type || 'javascript',
+    timestamp: error.timestamp || new Date().toISOString(),
+    severity: error.severity || 'error',
+    category: 'Unclassified',
+    ...error
+  };
+
+  // Pattern matching for intelligent classification
+  for (const pattern of ERROR_PATTERNS) {
+    if (pattern.regex.test(message)) {
+      baseError.category = pattern.category;
+      baseError.severity = pattern.severity;
+      baseError.suggestions = pattern.suggestions;
+      break;
+    }
+  }
+
+  return baseError;
+}
+
+function enrichErrorContext(error: WebError, page: Page): WebError {
+  return {
+    ...error,
+    context: {
+      userAgent: 'Mozilla/5.0 (Web Client Errors MCP)',
+      viewport: { width: 1920, height: 1080 },
+      url: page.url()
+    }
   };
 }
 
