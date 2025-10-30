@@ -1,0 +1,56 @@
+{
+  "name": "web-client-errors-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for detecting and analyzing client-side web errors - perfect for AI coding agents using CRUSH",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write src/**/*.{ts,tsx}",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol", 
+    "browser-errors",
+    "web-monitoring",
+    "crush",
+    "ai-agents",
+    "playwright",
+    "error-detection",
+    "client-side-errors",
+    "javascript-errors"
+  ],
+  "author": "Lars Artmann <lars@artmann.ai>",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "playwright": "^1.56.0",
+    "zod": "^3.23.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LarsArtmann/web-client-errors-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LarsArtmann/web-client-errors-mcp/issues"
+  },
+  "homepage": "https://github.com/LarsArtmann/web-client-errors-mcp#readme"
+}
