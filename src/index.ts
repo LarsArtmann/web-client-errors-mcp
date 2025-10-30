@@ -265,60 +265,106 @@ async function initializeBrowser(): Promise<Browser> {
 async function detectPageErrors(page: Page, session: ErrorSession, options: z.infer<typeof DetectErrorsSchema>): Promise<void> {
   const errors: WebError[] = [];
 
-  // JavaScript error detection (KeyCountdown pattern)
+  // Enhanced JavaScript error detection with classification
   page.on('pageerror', (error) => {
-    const webError: WebError = {
+    const baseError: Partial<WebError> = {
       message: error.message,
       type: 'javascript',
       stack: error.stack,
       timestamp: new Date().toISOString(),
       severity: 'error'
     };
-    errors.push(webError);
-    session.errors.push(webError);
+    
+    const classifiedError = classifyError(baseError);
+    const enrichedError = enrichErrorContext(classifiedError, page);
+    
+    // Track frequency for repeated errors
+    const existingError = session.errors.find(e => e.message === enrichedError.message);
+    if (existingError) {
+      enrichedError.frequency = (existingError.frequency || 1) + 1;
+      // Replace the existing error with updated frequency
+      const index = session.errors.indexOf(existingError);
+      session.errors[index] = enrichedError;
+    } else {
+      session.errors.push(enrichedError);
+    }
+    errors.push(enrichedError);
   });
 
-  // Console API monitoring
+  // Enhanced Console API monitoring
   page.on('console', (msg) => {
     if (msg.type() === 'error' || (options.includeConsoleWarnings && msg.type() === 'warning')) {
-      const webError: WebError = {
+      const baseError: Partial<WebError> = {
         message: msg.text(),
         type: 'console',
         timestamp: new Date().toISOString(),
         severity: msg.type() === 'error' ? 'error' : 'warning'
       };
-      errors.push(webError);
-      session.errors.push(webError);
+      
+      const classifiedError = classifyError(baseError);
+      const enrichedError = enrichErrorContext(classifiedError, page);
+      
+      session.errors.push(enrichedError);
+      errors.push(enrichedError);
     }
   });
 
-  // Network error detection
+  // Enhanced Network error detection
   if (options.includeNetworkErrors) {
     page.on('requestfailed', (request) => {
-      const webError: WebError = {
-        message: `Failed to load: ${request.url()} - ${request.failure()?.errorText}`,
+      const failureText = request.failure()?.errorText || 'Unknown error';
+      const baseError: Partial<WebError> = {
+        message: `Failed to load: ${request.url()} - ${failureText}`,
         type: 'network',
         url: request.url(),
         timestamp: new Date().toISOString(),
         severity: 'error'
       };
-      errors.push(webError);
-      session.errors.push(webError);
+      
+      const classifiedError = classifyError(baseError);
+      const enrichedError = enrichErrorContext(classifiedError, page);
+      
+      session.errors.push(enrichedError);
+      errors.push(enrichedError);
     });
   }
 
-  // Resource loading errors
+  // Enhanced Resource loading errors
   page.on('response', (response) => {
     if (response.status() >= 400) {
-      const webError: WebError = {
+      const baseError: Partial<WebError> = {
         message: `HTTP ${response.status()}: ${response.url()}`,
         type: 'resource',
         url: response.url(),
         timestamp: new Date().toISOString(),
-        severity: 'error'
+        severity: response.status() >= 500 ? 'critical' : 'error'
       };
-      errors.push(webError);
-      session.errors.push(webError);
+      
+      const classifiedError = classifyError(baseError);
+      const enrichedError = enrichErrorContext(classifiedError, page);
+      
+      session.errors.push(enrichedError);
+      errors.push(enrichedError);
+    }
+  });
+
+  // Performance monitoring
+  page.on('response', (response) => {
+    const timing = response.request().timing();
+    if (timing && timing.responseEnd > 10000) { // 10 second threshold
+      const baseError: Partial<WebError> = {
+        message: `Slow response detected: ${response.url()} took ${timing.responseEnd}ms`,
+        type: 'performance',
+        url: response.url(),
+        timestamp: new Date().toISOString(),
+        severity: 'warning'
+      };
+      
+      const classifiedError = classifyError(baseError);
+      const enrichedError = enrichErrorContext(classifiedError, page);
+      
+      session.errors.push(enrichedError);
+      errors.push(enrichedError);
     }
   });
 }
