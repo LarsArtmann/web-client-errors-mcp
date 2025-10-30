@@ -16,7 +16,7 @@
   },
   "keywords": [
     "mcp",
-    "model-context-protocol", 
+    "model-context-protocol",
     "browser-errors",
     "web-monitoring",
     "crush",
@@ -30,7 +30,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "playwright": "^1.56.0",
+    "playwright": "^1.56.1",
     "zod": "^3.23.4"
   },
   "devDependencies": {

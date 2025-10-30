@@ -39,11 +39,11 @@ let browser: Browser | null = null;
 // Validation schemas
 const DetectErrorsSchema = z.object({
   url: z.string().url("Invalid URL format"),
-  waitTime: z.number().optional().default(5000).min(1000).max(60000),
-  captureScreenshot: z.boolean().optional().default(true),
-  includeNetworkErrors: z.boolean().optional().default(true),
-  includeConsoleWarnings: z.boolean().optional().default(true),
-  interactWithPage: z.boolean().optional().default(false),
+  waitTime: z.number().min(1000).max(60000).default(5000),
+  captureScreenshot: z.boolean().default(true),
+  includeNetworkErrors: z.boolean().default(true),
+  includeConsoleWarnings: z.boolean().default(true),
+  interactWithPage: z.boolean().default(false),
   sessionId: z.string().optional()
 });
 
@@ -190,7 +190,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     });
     
     const page = await context.newPage();
-    const session = createErrorSession(options.url, options.sessionId);
+    const session = createErrorSession(options.url, options.sessionId || undefined);
     sessions.set(session.id, session);
     session.browserContext = context;
 
