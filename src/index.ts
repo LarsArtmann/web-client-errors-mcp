@@ -13,7 +13,8 @@ import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import { z } from 'zod';
 import { initializeLogging, getAppLogger } from './logger.js';
 import { getConfig } from './config.js';
-import type { MCPResponse } from './types.js';
+import type { MCPResponse, CallToolRequest, PerformanceEntry } from './types.js';
+import { isCallToolRequest, hasValidArguments } from './types.js';
 
 // Enhanced error detection interfaces with better type safety
 interface WebError {
@@ -429,6 +430,15 @@ async function captureDOMSnapshot(page: Page): Promise<string> {
 
 // Tool handlers for all three tools
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  // Type guard to ensure we have a valid CallToolRequest
+  if (!isCallToolRequest(request)) {
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ error: 'Invalid tool request' }) 
+      }]
+    };
+  }
   const { name } = request.params;
   
   try {
@@ -460,7 +470,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-async function handleDetectErrors(request: any): Promise<MCPResponse> {
+async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse> {
+  if (!hasValidArguments(request)) {
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ error: 'Missing or invalid arguments for detect_errors' }) 
+      }]
+    };
+  }
+  
   const options = DetectErrorsSchema.parse(request.params.arguments);
   const browser = await initializeBrowser();
   const config = getConfig();
@@ -507,14 +526,14 @@ async function handleDetectErrors(request: any): Promise<MCPResponse> {
   if (getConfig().features.performanceMetrics) {
     try {
       const performanceData = await page.evaluate(() => {
-        const navigation = performance.getEntriesByType('navigation' as any)[0] as any;
+        const navigation = (performance.getEntriesByType as any)('navigation')[0] as PerformanceEntry;
         if (!navigation) return null;
         
         return {
           domContentLoaded: (navigation.domContentLoadedEventEnd || 0) - (navigation.domContentLoadedEventStart || 0),
           loadComplete: (navigation.loadEventEnd || 0) - (navigation.loadEventStart || 0),
-          firstContentfulPaint: performance.getEntriesByType('paint' as any)
-            .filter((entry: any) => entry.name === 'first-contentful-paint')[0]?.startTime
+          firstContentfulPaint: (performance.getEntriesByType as any)('paint')
+            .find((entry: PerformanceEntry) => entry.name === 'first-contentful-paint')?.startTime
         };
       });
       
@@ -585,7 +604,16 @@ async function handleDetectErrors(request: any): Promise<MCPResponse> {
   };
 }
 
-async function handleAnalyzeErrorSession(request: any): Promise<MCPResponse> {
+async function handleAnalyzeErrorSession(request: CallToolRequest): Promise<MCPResponse> {
+  if (!hasValidArguments(request)) {
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ error: 'Missing or invalid arguments for analyze_error_session' }) 
+      }]
+    };
+  }
+  
   const options = AnalyzeErrorsSchema.parse(request.params.arguments);
   const session = sessions.get(options.sessionId);
 
@@ -627,7 +655,16 @@ async function handleAnalyzeErrorSession(request: any): Promise<MCPResponse> {
   };
 }
 
-async function handleGetErrorDetails(request: any): Promise<MCPResponse> {
+async function handleGetErrorDetails(request: CallToolRequest): Promise<MCPResponse> {
+  if (!hasValidArguments(request)) {
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ error: 'Missing or invalid arguments for get_error_details' }) 
+      }]
+    };
+  }
+  
   const options = GetErrorDetailsSchema.parse(request.params.arguments);
   
   // Find error across all sessions

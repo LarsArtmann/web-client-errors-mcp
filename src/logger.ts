@@ -1,5 +1,6 @@
-import { getLogger, configure } from '@logtape/logtape';
+import { getLogger, configure, type LogRecord as LogTapeRecord } from '@logtape/logtape';
 import { getConfig } from './config.js';
+import type { LogContext, Logger } from './types.js';
 
 // Configure LogTape for structured logging
 export function initializeLogging() {
@@ -12,19 +13,25 @@ export function initializeLogging() {
 
   configure({
     sinks: {
-      console: (record: any) => {
+      console: (record: LogTapeRecord) => {
         const timestamp = new Date().toISOString();
-        const level = record.level.toUpperCase();
-        const category = record.category;
+        const level = String(record.level).toUpperCase();
+        const category = Array.isArray(record.category) ? record.category.join('.') : String(record.category);
         
-        if (config.logging.redactSensitiveData && record.context) {
-          record.context = redactSensitiveData(record.context);
+        // Handle LogTape message format (template or array)
+        const messageText = Array.isArray(record.message) 
+          ? record.message.join('')
+          : String(record.message);
+        
+        let properties: Record<string, unknown> = record.properties || {};
+        if (config.logging.redactSensitiveData) {
+          properties = redactSensitiveData(properties) || {};
         }
         
-        const message = `[${timestamp}] ${level} ${category}: ${record.message}`;
+        const message = `[${timestamp}] ${level} ${category}: ${messageText}`;
         
-        if (record.context && Object.keys(record.context).length > 0) {
-          console.log(`${message} ${JSON.stringify(record.context)}`);
+        if (Object.keys(properties).length > 0) {
+          console.log(`${message} ${JSON.stringify(properties)}`);
         } else {
           console.log(message);
         }
@@ -34,42 +41,45 @@ export function initializeLogging() {
       {
         category: 'web-client-errors-mcp',
         sinks: ['console'],
-        lowestLevel: config.logging.level as any
+        lowestLevel: config.logging.level
       }
     ]
   });
 }
 
-export function getAppLogger(category: string = 'main') {
+export function getAppLogger(category: string = 'main'): Logger {
   const config = getConfig();
   
   if (!config.logging.structured) {
     // Simple console fallback with redaction
-    return {
-      info: (message: string, context?: any) => {
-        const ctx = config.logging.redactSensitiveData ? redactSensitiveData(context) : context;
-        console.log(`INFO: ${message}`, ctx || '');
-      },
-      warn: (message: string, context?: any) => {
-        const ctx = config.logging.redactSensitiveData ? redactSensitiveData(context) : context;
-        console.warn(`WARN: ${message}`, ctx || '');
-      },
-      error: (message: string, context?: any) => {
-        const ctx = config.logging.redactSensitiveData ? redactSensitiveData(context) : context;
-        console.error(`ERROR: ${message}`, ctx || '');
-      },
-      debug: (message: string, context?: any) => {
-        const ctx = config.logging.redactSensitiveData ? redactSensitiveData(context) : context;
-        console.debug(`DEBUG: ${message}`, ctx || '');
+    const logMethod = (level: string) => (message: string, context?: LogContext) => {
+      const finalContext = config.logging.redactSensitiveData && context ? redactSensitiveData(context) : context;
+      const logMessage = `[${new Date().toISOString()}] ${level.toUpperCase()}: ${message}`;
+      
+      if (finalContext && Object.keys(finalContext).length > 0) {
+        console.log(`${logMessage} ${JSON.stringify(finalContext)}`);
+      } else {
+        console.log(logMessage);
       }
     };
+    
+    const logger: Logger = {
+      debug: logMethod('debug'),
+      info: logMethod('info'),
+      warning: logMethod('warning'),
+      warn: logMethod('warning'),
+      error: logMethod('error'),
+      fatal: logMethod('fatal')
+    };
+    
+    return logger;
   }
   
   return getLogger(category);
 }
 
 // Redact sensitive data from logs
-function redactSensitiveData(data: any): any {
+function redactSensitiveData(data: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   if (!data || typeof data !== 'object') return data;
   
   const sensitiveFields = [
@@ -77,21 +87,19 @@ function redactSensitiveData(data: any): any {
     'authorization', 'cookie', 'session', 'csrf'
   ];
   
-  const redacted = { ...data };
-  
-  function redactValue(obj: any): any {
+  function redactValue(obj: unknown): unknown {
     if (Array.isArray(obj)) {
       return obj.map(redactValue);
     }
     
-    if (obj && typeof obj === 'object') {
-      const result: any = {};
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      const result: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
         const lowerKey = key.toLowerCase();
         if (sensitiveFields.some(field => lowerKey.includes(field))) {
           result[key] = '[REDACTED]';
-        } else if (typeof value === 'object') {
-          result[key] = redactValue(value);
+        } else if (typeof value === 'object' && value !== null) {
+          result[key] = redactValue(value as Record<string, unknown>);
         } else {
           result[key] = value;
         }
@@ -102,7 +110,7 @@ function redactSensitiveData(data: any): any {
     return obj;
   }
   
-  return redactValue(redacted);
+  return data ? redactValue(data) as Record<string, unknown> : data;
 }
 
 export default getAppLogger;

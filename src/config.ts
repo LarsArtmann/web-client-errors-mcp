@@ -11,7 +11,7 @@ interface ServerConfig {
     maxErrors: number;
   };
   logging: {
-    level: 'debug' | 'info' | 'warn' | 'error';
+    level: 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal';
     structured: boolean;
     redactSensitiveData: boolean;
   };
@@ -41,7 +41,7 @@ export const DEFAULT_CONFIG: ServerConfig = {
     maxErrors: 1000
   },
   logging: {
-    level: 'info',
+    level: 'info' as const,
     structured: true,
     redactSensitiveData: true
   },
