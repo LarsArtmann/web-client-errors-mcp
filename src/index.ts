@@ -481,6 +481,19 @@ async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse
   }
   
   const options = DetectErrorsSchema.parse(request.params.arguments);
+  
+  // URL validation
+  try {
+    new URL(options.url);
+  } catch {
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ error: 'Invalid URL provided' }) 
+      }]
+    };
+  }
+  
   const browser = await initializeBrowser();
   const config = getConfig();
   const context = await browser.newContext({
@@ -526,12 +539,14 @@ async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse
   if (getConfig().features.performanceMetrics) {
     try {
       const performanceData = await page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const navigation = (performance.getEntriesByType as any)('navigation')[0] as PerformanceEntry;
         if (!navigation) return null;
         
         return {
           domContentLoaded: (navigation.domContentLoadedEventEnd || 0) - (navigation.domContentLoadedEventStart || 0),
           loadComplete: (navigation.loadEventEnd || 0) - (navigation.loadEventStart || 0),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           firstContentfulPaint: (performance.getEntriesByType as any)('paint')
             .find((entry: PerformanceEntry) => entry.name === 'first-contentful-paint')?.startTime
         };

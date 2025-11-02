@@ -65,6 +65,21 @@ setup: install build test
 # Continuous integration (all checks)
 ci: build typecheck lint test
 
+# Security audit
+audit:
+  bun audit
+
+# Find code duplicates (alias: fd)
+find-duplicates:
+  bunx jscpd src --min-tokens 50 --format typescript --threshold 10 --ignore "**/*.test.ts,**/*.d.ts"
+
+# Alias for find-duplicates
+fd: find-duplicates
+
+# Dependency update
+update-deps:
+  bun update
+
 # Development watch mode
 watch:
   bun run dev
@@ -96,4 +111,9 @@ help:
   @echo "  ci           - Run all CI checks"
   @echo "  watch        - Run in watch mode"
   @echo "  coverage     - Run tests with coverage"
+  @echo "  perf         - Start with performance monitoring"
+  @echo "  audit        - Run security audit on dependencies"
+  @echo "  update-deps  - Update all dependencies"
+  @echo "  fd           - Find code duplicates (alias for find-duplicates)"
+  @echo "  find-duplicates - Find code duplicates using jscpd"
   @echo "  help         - Show this help message"
