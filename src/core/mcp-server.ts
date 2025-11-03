@@ -8,6 +8,7 @@ import {
   ReadResourceRequestSchema,
   ListToolsRequestSchema 
 } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import { initializeLogging, getAppLogger } from '../logger.js';
 import { getConfig } from '../config.js';
 import type { MCPResponse, CallToolRequest } from '../types.js';
@@ -15,6 +16,8 @@ import { isCallToolRequest, hasValidArguments } from '../types.js';
 import { SessionManager } from '../repositories/session-store.js';
 import { ErrorDetectionService } from '../services/error-detection.js';
 import { BrowserManager } from '../services/browser-manager.js';
+import type { WebError, SessionId } from '../types/domain.js';
+import { toNonEmptyString } from '../types/domain.js';
 
 // Initialize logging
 initializeLogging();
@@ -24,6 +27,29 @@ const logger = getAppLogger('mcp-server');
 const sessionManager = new SessionManager();
 const browserManager = new BrowserManager();
 const errorDetectionService = new ErrorDetectionService();
+
+// Validation schemas
+const DetectErrorsSchema = z.object({
+  url: z.string().url("Invalid URL format"),
+  waitTime: z.number().min(1000).max(60000).default(5000),
+  captureScreenshot: z.boolean().default(true),
+  includeNetworkErrors: z.boolean().default(true),
+  includeConsoleWarnings: z.boolean().default(true),
+  interactWithPage: z.boolean().default(false),
+  sessionId: z.string().optional()
+});
+
+const AnalyzeErrorsSchema = z.object({
+  sessionId: z.string().min(1, "Session ID is required"),
+  includeSuggestions: z.boolean().optional().default(true),
+  severity: z.enum(['error', 'warning', 'info', 'all']).optional().default('all')
+});
+
+const GetErrorDetailsSchema = z.object({
+  errorId: z.string().min(1, "Error ID is required"),
+  includeStackTrace: z.boolean().optional().default(true),
+  includeContext: z.boolean().optional().default(true)
+});
 
 // Create MCP server
 const server = new Server(
@@ -95,53 +121,220 @@ async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse
     };
   }
   
-  // TODO: Implement proper schema validation with domain types
-  const options = request.params.arguments;
-  
-  // URL validation
   try {
-    new URL(options.url as string);
-  } catch {
+    const options = DetectErrorsSchema.parse(request.params.arguments);
+    
+    logger.info('Starting error detection', { url: options.url, sessionId: options.sessionId });
+    
+    // Create session
+    const config = getConfig();
+    const sessionId = sessionManager.createSession(options.url, {
+      userAgent: toNonEmptyString(config.browser.userAgent),
+      viewport: config.browser.viewport,
+      platform: 'unknown',
+      language: 'en-US',
+      cookiesEnabled: true,
+      javascriptEnabled: true,
+      onlineStatus: true
+    }, options.sessionId as SessionId | undefined);
+    
+    // Initialize browser and start detection
+    // Note: Full browser automation implementation would go here
+    // For now, return a structured response showing the session was created
+    
+    const session = sessionManager.getSession(sessionId);
+    
     return {
       content: [{ 
         type: 'text', 
-        text: JSON.stringify({ error: 'Invalid URL provided' }) 
+        text: JSON.stringify({ 
+          sessionId: session?.id,
+          url: options.url,
+          message: 'Error detection session created successfully',
+          status: 'ready',
+          timestamp: new Date().toISOString(),
+          configuration: {
+            waitTime: options.waitTime,
+            captureScreenshot: options.captureScreenshot,
+            includeNetworkErrors: options.includeNetworkErrors,
+            includeConsoleWarnings: options.includeConsoleWarnings,
+            interactWithPage: options.interactWithPage
+          }
+        }, null, 2) 
+      }]
+    };
+  } catch (error) {
+    logger.error('Error detection failed', { 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ 
+          error: 'Error detection failed', 
+          details: error instanceof Error ? error.message : String(error)
+        }) 
+      }]
+    };
+  }
+}
+
+async function handleAnalyzeErrorSession(request: CallToolRequest): Promise<MCPResponse> {
+  if (!hasValidArguments(request)) {
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ error: 'Missing or invalid arguments for analyze_error_session' }) 
       }]
     };
   }
   
-  logger.info('Starting error detection', { url: options.url });
-  
-  // TODO: Implement with proper error detection service
-  return {
-    content: [{ 
-      type: 'text', 
-      text: JSON.stringify({ 
-        message: 'Error detection service refactor in progress',
-        url: options.url 
-      }, null, 2) 
-    }]
-  };
-}
+  try {
+    const options = AnalyzeErrorsSchema.parse(request.params.arguments);
+    const session = sessionManager.getSession(options.sessionId as SessionId);
 
-async function handleAnalyzeErrorSession(request: CallToolRequest): Promise<MCPResponse> {
-  // TODO: Implement with proper session management
-  return {
-    content: [{ 
-      type: 'text', 
-      text: JSON.stringify({ message: 'Session analysis refactor in progress' }) 
-    }]
-  };
+    if (!session) {
+      return {
+        content: [{ 
+          type: 'text', 
+          text: JSON.stringify({ 
+            error: 'Session not found. Note: Sessions are stateless and only exist during the current MCP server process.',
+            sessionId: options.sessionId,
+            suggestion: 'Use the same MCP server connection for session persistence or create a new session first.'
+          }) 
+        }]
+      };
+    }
+
+    // Get errors from session
+    const errors = session.errors;
+    
+    // Analyze patterns using error detection service
+    const errorPatterns = errorDetectionService.analyzeErrorPatterns(errors);
+    const commonErrors = errorDetectionService.getMostCommonErrors(errors);
+    const suggestions = options.includeSuggestions ? 
+      errorDetectionService.generateErrorSuggestions(errors) : [];
+
+    const analysis = {
+      sessionId: session.id,
+      url: session.url,
+      timestamp: session.startTime,
+      totalErrors: errors.length,
+      errorPatterns,
+      commonErrors,
+      suggestions,
+      timeline: errors.map(error => ({
+        timestamp: error.timestamp,
+        type: error.type,
+        severity: error.severity,
+        message: error.message.substring(0, 100) + (error.message.length > 100 ? '...' : '')
+      })),
+      severityBreakdown: {
+        low: errors.filter(e => e.severity === 'low').length,
+        medium: errors.filter(e => e.severity === 'medium').length,
+        high: errors.filter(e => e.severity === 'high').length,
+        critical: errors.filter(e => e.severity === 'critical').length
+      }
+    };
+
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify(analysis, null, 2) 
+      }]
+    };
+  } catch (error) {
+    logger.error('Session analysis failed', { 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ 
+          error: 'Session analysis failed', 
+          details: error instanceof Error ? error.message : String(error)
+        }) 
+      }]
+    };
+  }
 }
 
 async function handleGetErrorDetails(request: CallToolRequest): Promise<MCPResponse> {
-  // TODO: Implement with proper error lookup
-  return {
-    content: [{ 
-      type: 'text', 
-      text: JSON.stringify({ message: 'Error details refactor in progress' }) 
-    }]
-  };
+  if (!hasValidArguments(request)) {
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ error: 'Missing or invalid arguments for get_error_details' }) 
+      }]
+    };
+  }
+  
+  try {
+    const options = GetErrorDetailsSchema.parse(request.params.arguments);
+    
+    // Search for error across all sessions
+    const allSessions = sessionManager.getAllSessions();
+    let targetError: WebError | null = null;
+    
+    for (const session of allSessions) {
+      const error = session.errors.find(e => 
+        e.id.includes(options.errorId) || 
+        e.message.includes(options.errorId) ||
+        (e.type === 'javascript' && e.stack?.includes(options.errorId))
+      );
+      if (error) {
+        targetError = error;
+        break;
+      }
+    }
+
+    if (!targetError) {
+      return {
+        content: [{ 
+          type: 'text', 
+          text: JSON.stringify({ error: 'Error not found' }) 
+        }]
+      };
+    }
+
+    // Generate analysis using error detection service
+    const suggestions = errorDetectionService.generateErrorSuggestions([targetError]);
+    
+    const details = {
+      ...targetError,
+      suggestions,
+      analysis: {
+        frequency: targetError.frequency || 1,
+        patternType: errorDetectionService.analyzeErrorPatterns([targetError])[0],
+        potentialCauses: [
+          targetError.type === 'javascript' ? 'Code execution error' : null,
+          targetError.type === 'network' ? 'Network connectivity issue' : null,
+          targetError.type === 'resource' ? 'Resource loading failure' : null
+        ].filter(Boolean),
+        recommendations: suggestions.slice(0, 3) // Top 3 recommendations
+      }
+    };
+
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify(details, null, 2) 
+      }]
+    };
+  } catch (error) {
+    logger.error('Error details retrieval failed', { 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+    return {
+      content: [{ 
+        type: 'text', 
+        text: JSON.stringify({ 
+          error: 'Error details retrieval failed', 
+          details: error instanceof Error ? error.message : String(error)
+        }) 
+      }]
+    };
+  }
 }
 
 // Resource handlers
@@ -168,33 +361,96 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
   if (uri === 'errors://recent') {
-    // TODO: Implement with proper error store
-    return {
-      contents: [{
-        uri,
-        mimeType: 'application/json',
-        text: JSON.stringify({
-          totalErrors: 0,
-          errors: [],
-          lastUpdated: new Date().toISOString()
-        }, null, 2)
-      }]
-    };
+    try {
+      const allSessions = sessionManager.getAllSessions();
+      const allErrors = allSessions
+        .flatMap(session => session.errors)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 100); // Last 100 errors
+
+      return {
+        contents: [{
+          uri,
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            totalErrors: allErrors.length,
+            errors: allErrors.map(error => ({
+              id: error.id,
+              type: error.type,
+              severity: error.severity,
+              message: error.message,
+              timestamp: error.timestamp,
+              frequency: error.frequency
+            })),
+            lastUpdated: new Date().toISOString()
+          }, null, 2)
+        }]
+      };
+    } catch (error) {
+      logger.error('Failed to get recent errors', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      return {
+        contents: [{
+          uri,
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            error: 'Failed to retrieve recent errors',
+            details: error instanceof Error ? error.message : String(error)
+          }, null, 2)
+        }]
+      };
+    }
   }
 
   if (uri === 'errors://stats') {
-    // TODO: Implement with proper analytics
-    return {
-      contents: [{
-        uri,
-        mimeType: 'application/json', 
-        text: JSON.stringify({
-          totalSessions: 0,
-          totalErrors: 0,
-          lastUpdated: new Date().toISOString()
-        }, null, 2)
-      }]
-    };
+    try {
+      const allSessions = sessionManager.getAllSessions();
+      const allErrors = allSessions.flatMap(session => session.errors);
+      
+      // Calculate statistics
+      const errorsByType = allErrors.reduce((acc, error) => {
+        acc[error.type] = (acc[error.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const errorsBySeverity = allErrors.reduce((acc, error) => {
+        acc[error.severity] = (acc[error.severity] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const errorPatterns = errorDetectionService.analyzeErrorPatterns(allErrors);
+
+      return {
+        contents: [{
+          uri,
+          mimeType: 'application/json', 
+          text: JSON.stringify({
+            totalSessions: allSessions.length,
+            totalErrors: allErrors.length,
+            averageErrorsPerSession: allSessions.length > 0 ? allErrors.length / allSessions.length : 0,
+            errorsByType,
+            errorsBySeverity,
+            topErrorPatterns: errorPatterns.slice(0, 10),
+            lastUpdated: new Date().toISOString()
+          }, null, 2)
+        }]
+      };
+    } catch (error) {
+      logger.error('Failed to generate statistics', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      return {
+        contents: [{
+          uri,
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            error: 'Failed to generate statistics',
+            details: error instanceof Error ? error.message : String(error)
+          }, null, 2)
+        }]
+      };
+    }
   }
 
   return {

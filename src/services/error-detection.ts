@@ -1,4 +1,15 @@
-import { type WebError, type SessionId, createErrorId, type ErrorSeverity, createJavaScriptError, createNetworkError, toISO8601 } from '../types/domain.js';
+import { 
+  type WebError, 
+  type SessionId, 
+  createErrorId, 
+  type ErrorSeverity, 
+  createJavaScriptError, 
+  createNetworkError,
+  type JavaScriptError,
+  type NetworkError,
+  toISO8601,
+  ErrorId
+} from '../types/domain.js';
 import { getAppLogger } from '../logger.js';
 
 // Enhanced error pattern definitions for intelligent classification
@@ -90,20 +101,22 @@ export class ErrorDetectionService {
       if (pattern.regex.test(message)) {
         // Create specific error type based on classification
         if (error.type === 'javascript') {
+          const jsError = error as Partial<JavaScriptError>;
           return createJavaScriptError(
             message,
-            (error as any).stack || 'No stack trace available',
-            (error as any).line || 0,
-            (error as any).column || 0,
-            (error as any).url || 'Unknown URL',
+            jsError.stack || 'No stack trace available',
+            jsError.line || 0,
+            jsError.column || 0,
+            jsError.url || 'Unknown URL',
             pattern.severity
           );
         } else if (error.type === 'network') {
+          const netError = error as Partial<NetworkError>;
           return createNetworkError(
             message,
-            (error as any).url || 'Unknown URL',
-            0, // Will be filled by actual network error
-            undefined, // Will be filled by actual network error
+            netError.url || 'Unknown URL',
+            netError.responseTime || 0,
+            netError.statusCode || 0,
             pattern.severity
           );
         }
@@ -111,12 +124,13 @@ export class ErrorDetectionService {
     }
 
     // Default classification - create JavaScript error as fallback
+    const jsError = error as Partial<JavaScriptError>;
     return createJavaScriptError(
       message,
-      (error as any).stack || 'No stack trace available',
-      (error as any).line || 0,
-      (error as any).column || 0,
-      (error as any).url || 'Unknown URL',
+      jsError.stack || 'No stack trace available',
+      jsError.line || 0,
+      jsError.column || 0,
+      jsError.url || 'Unknown URL',
       error.severity || 'medium'
     );
   }

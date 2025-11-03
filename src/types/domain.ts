@@ -60,7 +60,7 @@ export interface JavaScriptError extends BaseWebError {
 export interface NetworkError extends BaseWebError {
   readonly type: 'network';
   readonly url: string;
-  readonly statusCode?: number;
+  readonly statusCode: number; // Always present, even if 0
   readonly responseTime: number;
 }
 
@@ -178,7 +178,7 @@ export const createNetworkError = (
   message: string,
   url: string,
   responseTime: number,
-  statusCode?: number,
+  statusCode: number = 0, // Default to 0 if no status code
   severity: ErrorSeverity = 'medium'
 ): NetworkError => ({
   type: 'network',
@@ -188,7 +188,7 @@ export const createNetworkError = (
   severity,
   frequency: 0, // Always present!
   url,
-  statusCode,
+  statusCode: Math.max(0, statusCode), // Ensure non-negative
   responseTime: Math.max(0, responseTime),
 });
 
@@ -307,25 +307,4 @@ export class ErrorStore {
   }
 }
 
-// Type exports for external use
-export type {
-  WebError,
-  JavaScriptError,
-  NetworkError,
-  ResourceError,
-  ConsoleError,
-  PerformanceError,
-  SecurityError,
-  ErrorSession,
-  SessionMetadata,
-  PerformanceMetrics,
-  DOMSnapshot,
-  NetworkConditions,
-  ErrorContext,
-  ErrorSeverity,
-  ErrorType,
-  SessionId,
-  ErrorId,
-  ISO8601String,
-  NonEmptyString,
-};
+// All types are already exported above - no need to re-export

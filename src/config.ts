@@ -1,5 +1,6 @@
 // Note: Zod imports temporarily disabled for testing
 // Configuration will be validated at API layer when needed
+import { z } from 'zod';
 
 // Type definition for ServerConfig
 export type ServerConfig = {
@@ -32,6 +33,36 @@ export type ServerConfig = {
   };
 };
 
+export const ServerConfigSchema = z.object({
+  browser: z.object({
+    headless: z.boolean(),
+    viewport: z.object({ width: z.number(), height: z.number() }),
+    userAgent: z.string(),
+    args: z.array(z.string()),
+  }),
+  thresholds: z.object({
+    slowResponse: z.number(),
+    sessionTimeout: z.number(),
+    maxErrors: z.number(),
+  }),
+  logging: z.object({
+    level: z.enum(['trace', 'debug', 'info', 'warning', 'error', 'fatal']),
+    structured: z.boolean(),
+    redactSensitiveData: z.boolean(),
+  }),
+  features: z.object({
+    domSnapshots: z.boolean(),
+    performanceMetrics: z.boolean(),
+    errorDeduplication: z.boolean(),
+    sentryIntegration: z.boolean(),
+  }),
+  sentry: z.object({
+    dsn: z.string(),
+    environment: z.string(),
+    tracesSampleRate: z.number(),
+  }).optional(),
+});
+
 export const DEFAULT_CONFIG: ServerConfig = {
   browser: {
     headless: true,
@@ -45,7 +76,7 @@ export const DEFAULT_CONFIG: ServerConfig = {
     maxErrors: 1000
   },
   logging: {
-    level: 'info' as const,
+    level: 'info',
     structured: true,
     redactSensitiveData: true
   },
