@@ -69,5 +69,22 @@ export function getConfig(): ServerConfig {
 }
 
 export function validateConfig(config: unknown): ServerConfig {
-  return ServerConfigSchema.parse(config);
+  // Basic validation without Zod to avoid import conflicts
+  if (!config || typeof config !== 'object') {
+    throw new Error('Configuration must be an object');
+  }
+  
+  const cfg = config as any;
+  
+  if (!cfg.browser || typeof cfg.browser.headless !== 'boolean') {
+    throw new Error('Invalid browser configuration');
+  }
+  if (!cfg.thresholds || typeof cfg.thresholds.sessionTimeout !== 'number') {
+    throw new Error('Invalid thresholds configuration');
+  }
+  if (!cfg.features || typeof cfg.features.domSnapshots !== 'boolean') {
+    throw new Error('Invalid features configuration');
+  }
+  
+  return config as ServerConfig;
 }
