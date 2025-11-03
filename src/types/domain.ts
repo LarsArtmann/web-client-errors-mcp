@@ -2,7 +2,6 @@
 
 // 🚨 IMMEDIATE CRITICAL FIXES - PRODUCTION READINESS
 
-import { createHash } from 'crypto';
 import { z } from 'zod';
 
 // 1. BRANDED TYPES FOR IMPOSSIBLE STATE PREVENTION
@@ -156,7 +155,7 @@ export interface ErrorSession {
 export const SessionIdSchema = z.string().min(1).transform(createSessionId);
 export const ErrorIdSchema = z.string().min(1).transform(createErrorId);
 export const NonEmptyStringSchema = z.string().min(1).transform(toNonEmptyString);
-export const ISO8601Schema = z.string().datetime().transform(toISO8601);
+export const ISO8601Schema = z.string().datetime().transform((s) => toISO8601(new Date(s)));
 
 export const WebErrorSchema = z.discriminatedUnion('type', [
   z.object({
@@ -321,7 +320,7 @@ export class ErrorStore {
     return this.errors.get(id);
   }
 
-  getErrorsBySession(sessionId: SessionId): readonly WebError[] {
+  getErrorsBySession(_sessionId: SessionId): readonly WebError[] {
     // In a real implementation, we'd index by session ID
     return Array.from(this.errors.values());
   }
@@ -340,22 +339,14 @@ export class ErrorStore {
 }
 
 export default {
-  // Types
-  type WebError,
-  type ErrorSession,
-  type SessionId,
-  type ErrorId,
-  type ISO8601String,
-  type NonEmptyString,
-  
-  // Helpers
+  // Creators
   createSessionId,
   createErrorId,
   toISO8601,
   toNonEmptyString,
   isISO8601,
   
-  // Creators
+  // Factories
   createJavaScriptError,
   createNetworkError,
   createErrorSession,
