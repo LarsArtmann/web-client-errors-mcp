@@ -2,8 +2,6 @@
 
 // 🚨 IMMEDIATE CRITICAL FIXES - PRODUCTION READINESS
 
-import { z } from 'zod';
-
 // 1. BRANDED TYPES FOR IMPOSSIBLE STATE PREVENTION
 export type ISO8601String = string & { readonly __brand: unique symbol };
 export type SessionId = string & { readonly __brand: unique symbol };
@@ -48,7 +46,7 @@ export interface BaseWebError {
   readonly message: NonEmptyString;
   readonly timestamp: ISO8601String;
   readonly severity: ErrorSeverity;
-  readonly frequency: number; // ALWAYS present - no split brain!
+  readonly frequency: number; // ALWAYS present!
 }
 
 export interface JavaScriptError extends BaseWebError {
@@ -151,40 +149,7 @@ export interface ErrorSession {
   readonly metadata: Readonly<SessionMetadata>;
 }
 
-// 5. VALIDATED SCHEMAS - ZOD WITH BRANDED TYPES
-export const SessionIdSchema = z.string().min(1).transform(createSessionId);
-export const ErrorIdSchema = z.string().min(1).transform(createErrorId);
-export const NonEmptyStringSchema = z.string().min(1).transform(toNonEmptyString);
-export const ISO8601Schema = z.string().datetime().transform((s) => toISO8601(new Date(s)));
-
-export const WebErrorSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('javascript'),
-    id: ErrorIdSchema,
-    message: NonEmptyStringSchema,
-    timestamp: ISO8601Schema,
-    severity: z.enum(['low', 'medium', 'high', 'critical']),
-    frequency: z.number().min(0),
-    stack: NonEmptyStringSchema,
-    line: z.number().min(0),
-    column: z.number().min(0),
-    url: z.string().url(),
-  }),
-  z.object({
-    type: z.literal('network'),
-    id: ErrorIdSchema,
-    message: NonEmptyStringSchema,
-    timestamp: ISO8601Schema,
-    severity: z.enum(['low', 'medium', 'high', 'critical']),
-    frequency: z.number().min(0),
-    url: z.string().url(),
-    statusCode: z.number().min(100).max(599).optional(),
-    responseTime: z.number().min(0),
-  }),
-  // TODO: Add other error types
-]);
-
-// 6. TYPE-CREATION HELPERS - ENSURE VALIDITY
+// 5. TYPE-CREATION HELPERS - ENSURE VALIDITY
 export const createJavaScriptError = (
   message: string,
   stack: string,
@@ -192,18 +157,22 @@ export const createJavaScriptError = (
   column: number,
   url: string,
   severity: ErrorSeverity = 'medium'
-): JavaScriptError => ({
-  type: 'javascript',
-  id: createErrorId(),
-  message: toNonEmptyString(message),
-  timestamp: toISO8601(),
-  severity,
-  frequency: 0, // Always present!
-  stack: toNonEmptyString(stack),
-  line: Math.max(0, line),
-  column: Math.max(0, column),
-  url,
-});
+): JavaScriptError => {
+  const error = {
+    type: 'javascript' as const,
+    id: createErrorId(),
+    message: toNonEmptyString(message),
+    timestamp: toISO8601(),
+    severity,
+    frequency: 0, // Always present!
+    stack: toNonEmptyString(stack),
+    line: Math.max(0, line),
+    column: Math.max(0, column),
+    url,
+  };
+  
+  return Object.freeze(error);
+};
 
 export const createNetworkError = (
   message: string,
@@ -236,7 +205,7 @@ export const createErrorSession = (
   metadata: Object.freeze(metadata), // Immutable!
 });
 
-// 7. MEMORY-SAFE SESSION MANAGER - NO LEAKS
+// 6. MEMORY-SAFE SESSION MANAGER - NO LEAKS
 export class SessionManager {
   private readonly sessions = new Map<SessionId, ErrorSession>();
   private readonly ttlMs: number;
@@ -308,7 +277,7 @@ export class SessionManager {
   }
 }
 
-// 8. IMMUTABLE ERROR STORE - THREAD SAFE
+// 7. IMMUTABLE ERROR STORE - THREAD SAFE
 export class ErrorStore {
   private readonly errors = new Map<ErrorId, WebError>();
 
@@ -338,20 +307,25 @@ export class ErrorStore {
   }
 }
 
-export default {
-  // Creators
-  createSessionId,
-  createErrorId,
-  toISO8601,
-  toNonEmptyString,
-  isISO8601,
-  
-  // Factories
-  createJavaScriptError,
-  createNetworkError,
-  createErrorSession,
-  
-  // Managers
-  SessionManager,
-  ErrorStore,
+// Type exports for external use
+export type {
+  WebError,
+  JavaScriptError,
+  NetworkError,
+  ResourceError,
+  ConsoleError,
+  PerformanceError,
+  SecurityError,
+  ErrorSession,
+  SessionMetadata,
+  PerformanceMetrics,
+  DOMSnapshot,
+  NetworkConditions,
+  ErrorContext,
+  ErrorSeverity,
+  ErrorType,
+  SessionId,
+  ErrorId,
+  ISO8601String,
+  NonEmptyString,
 };

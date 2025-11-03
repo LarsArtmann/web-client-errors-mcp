@@ -13,7 +13,7 @@ interface ErrorPattern {
 const ERROR_PATTERNS: ErrorPattern[] = [
   {
     name: 'TypeError: Undefined Property',
-    regex: /TypeError: Cannot read propert(?:y|ies) of (undefined|null)/,
+    regex: /TypeError: Cannot read propert(?:y|ies) of (undefined|null)|TypeError: Cannot read property \w+ of (undefined|null)/,
     category: 'Property Access',
     severity: 'high',
     suggestions: [
@@ -182,6 +182,8 @@ export class ErrorDetectionService {
     errors.forEach(error => {
       if (error.message.includes('undefined')) {
         suggestions.push('Check if variable is properly initialized before use');
+        suggestions.push('Use optional chaining (?.) for safer property access');
+        suggestions.push('Add null/undefined checks before property access');
       }
       if (error.message.includes('TypeError')) {
         suggestions.push('Verify data types of variables and function parameters');
