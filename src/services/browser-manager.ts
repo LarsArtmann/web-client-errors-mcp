@@ -32,7 +32,7 @@ export class BrowserManager {
       
       this.browser = await chromium.launch({
         headless: config.browser.headless,
-        args: config.browser.args
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...config.browser.args]
       });
     }
     return this.browser;
