@@ -245,6 +245,15 @@ export class SessionManager {
     return updated;
   }
 
+  addError(sessionId: SessionId, error: WebError): void {
+    const current = this.getSession(sessionId);
+    if (!current) return;
+
+    const updatedErrors = [...current.errors, error];
+    const updatedSession = { ...current, errors: updatedErrors };
+    this.sessions.set(sessionId, updatedSession);
+  }
+
   deleteSession(id: SessionId): boolean {
     return this.sessions.delete(id);
   }

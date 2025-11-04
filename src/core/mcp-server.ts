@@ -139,30 +139,61 @@ async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse
     }, options.sessionId as SessionId | undefined);
     
     // Initialize browser and start detection
-    // Note: Full browser automation implementation would go here
-    // For now, return a structured response showing the session was created
+    const context = await browserManager.createContext();
+    const page = await browserManager.createPageWithContext(sessionId, context);
     
-    const session = sessionManager.getSession(sessionId);
-    
-    return {
-      content: [{ 
-        type: 'text', 
-        text: JSON.stringify({ 
-          sessionId: session?.id,
-          url: options.url,
-          message: 'Error detection session created successfully',
-          status: 'ready',
-          timestamp: new Date().toISOString(),
-          configuration: {
-            waitTime: options.waitTime,
-            captureScreenshot: options.captureScreenshot,
-            includeNetworkErrors: options.includeNetworkErrors,
-            includeConsoleWarnings: options.includeConsoleWarnings,
-            interactWithPage: options.interactWithPage
-          }
-        }, null, 2) 
-      }]
-    };
+    try {
+      // Navigate to the URL
+      await page.goto(options.url, { waitUntil: 'domcontentloaded', timeout: 10000 });
+      
+      // Wait for the specified time to collect errors
+      if (options.interactWithPage) {
+        // Basic interaction - scroll and click some elements
+        await page.evaluate(() => {
+          // This code runs in the browser context
+          window.scrollTo(0, document.body.scrollHeight / 2);
+        });
+        await page.waitForTimeout(options.waitTime / 2);
+      }
+      
+      // Wait for remaining time
+      await page.waitForTimeout(options.waitTime);
+      
+      // Get the session with collected errors
+      const updatedSession = sessionManager.getSession(sessionId);
+      
+      return {
+        content: [{ 
+          type: 'text', 
+          text: JSON.stringify({ 
+            sessionId: updatedSession?.id,
+            url: options.url,
+            message: 'Error detection completed successfully',
+            status: 'completed',
+            timestamp: new Date().toISOString(),
+            errorsCollected: updatedSession?.errors.length || 0,
+            errors: updatedSession?.errors.map(error => ({
+              id: error.id,
+              type: error.type,
+              severity: error.severity,
+              message: error.message,
+              timestamp: error.timestamp
+            })) || [],
+            configuration: {
+              waitTime: options.waitTime,
+              captureScreenshot: options.captureScreenshot,
+              includeNetworkErrors: options.includeNetworkErrors,
+              includeConsoleWarnings: options.includeConsoleWarnings,
+              interactWithPage: options.interactWithPage
+            }
+          }, null, 2) 
+        }]
+      };
+    } finally {
+      // Cleanup page and context
+      await page.close();
+      await context.close();
+    }
   } catch (error) {
     logger.error('Error detection failed', { 
       error: error instanceof Error ? error.message : String(error) 
