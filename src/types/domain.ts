@@ -127,6 +127,11 @@ export interface SessionMetadata {
   readonly onlineStatus: boolean;
   readonly domSnapshot?: DOMSnapshot;
   readonly performanceMetrics?: PerformanceMetrics;
+  readonly framework?: {
+    readonly name: string;
+    readonly version?: string;
+    readonly confidence: 'high' | 'medium' | 'low';
+  };
 }
 
 export interface PerformanceMetrics {
@@ -249,11 +254,14 @@ export class SessionManager {
     return updated;
   }
 
-  addError(sessionId: SessionId, error: WebError): void {
+  async addError(sessionId: SessionId, error: WebError): Promise<void> {
     const current = this.getSession(sessionId);
     if (!current) return;
 
-    const updatedErrors = [...current.errors, error];
+    // Use deduplication to merge errors by fingerprint
+    // This prevents storing duplicate errors and tracks frequency accurately
+    const { mergeError } = await import('../services/error-deduplication.js');
+    const updatedErrors = mergeError(current.errors, error);
     const updatedSession = { ...current, errors: updatedErrors };
     this.sessions.set(sessionId, updatedSession);
   }

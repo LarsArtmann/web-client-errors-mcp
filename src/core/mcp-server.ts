@@ -145,7 +145,33 @@ async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse
     try {
       // Navigate to the URL
       await page.goto(options.url, { waitUntil: 'domcontentloaded', timeout: 10000 });
-      
+
+      // Detect framework after page load
+      const { detectFramework } = await import('../services/framework-detection.js');
+      const frameworkInfo = await detectFramework(page);
+
+      // Update session with framework info
+      const currentSessionAfterNav = sessionManager.getSession(sessionId);
+      if (currentSessionAfterNav && frameworkInfo.name !== 'Unknown') {
+        sessionManager.updateSession(sessionId, {
+          ...currentSessionAfterNav,
+          metadata: {
+            ...currentSessionAfterNav.metadata,
+            framework: {
+              name: frameworkInfo.name,
+              version: frameworkInfo.version,
+              confidence: frameworkInfo.confidence
+            }
+          }
+        });
+
+        logger.info('Framework detected', {
+          framework: frameworkInfo.name,
+          version: frameworkInfo.version,
+          confidence: frameworkInfo.confidence
+        });
+      }
+
       // Wait for the specified time to collect errors
       if (options.interactWithPage) {
         // Basic interaction - scroll and click some elements
@@ -206,6 +232,33 @@ async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse
           }
         } catch (error) {
           logger.error('DOM snapshot capture failed', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      // Capture Web Vitals performance metrics
+      if (config.features.performanceMetrics !== false) {
+        try {
+          const perfResult = await browserManager.capturePerformanceMetrics(page);
+
+          // Add performance metrics to session metadata
+          const currentSession = sessionManager.getSession(sessionId);
+          if (currentSession) {
+            sessionManager.updateSession(sessionId, {
+              ...currentSession,
+              metadata: {
+                ...currentSession.metadata,
+                performanceMetrics: perfResult.metrics
+              }
+            });
+          }
+
+          logger.info('Web Vitals captured', {
+            vitals: perfResult.vitals.map(v => `${v.name}:${v.value}(${v.rating})`).join(', ')
+          });
+        } catch (error) {
+          logger.error('Performance metrics capture failed', {
             error: error instanceof Error ? error.message : String(error)
           });
         }

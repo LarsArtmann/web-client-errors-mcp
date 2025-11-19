@@ -61,7 +61,7 @@ export class BrowserManager {
 
   private setupErrorListeners(page: Page): void {
     // JavaScript error detection
-    page.on('pageerror', (error) => {
+    page.on('pageerror', async (error) => {
       this.logger.error('JavaScript error detected', {
         message: error.message,
         stack: error.stack,
@@ -78,14 +78,14 @@ export class BrowserManager {
         'high' // JS errors are high severity by default
       );
 
-      // Store in session
+      // Store in session with deduplication
       if (this.currentSessionId) {
-        this.sessionManager.addError(this.currentSessionId, webError);
+        await this.sessionManager.addError(this.currentSessionId, webError);
       }
     });
 
     // Console error detection
-    page.on('console', (msg) => {
+    page.on('console', async (msg) => {
       if (msg.type() === 'error') {
         this.logger.error('Console error detected', {
           message: msg.text(),
@@ -100,16 +100,16 @@ export class BrowserManager {
           page.url(),
           'medium' // Console errors might be less critical
         );
-        
-        // Store in session
+
+        // Store in session with deduplication
         if (this.currentSessionId) {
-          this.sessionManager.addError(this.currentSessionId, webError);
+          await this.sessionManager.addError(this.currentSessionId, webError);
         }
       }
     });
 
     // Network error detection
-    page.on('response', (response) => {
+    page.on('response', async (response) => {
       if (response.status() >= 400) {
         this.logger.error('Network error detected', {
           url: response.url(),
@@ -124,16 +124,16 @@ export class BrowserManager {
           response.status(),
           response.status() >= 500 ? 'high' : 'medium'
         );
-        
-        // Store in session
+
+        // Store in session with deduplication
         if (this.currentSessionId) {
-          this.sessionManager.addError(this.currentSessionId, webError);
+          await this.sessionManager.addError(this.currentSessionId, webError);
         }
       }
     });
 
     // Request failure detection
-    page.on('requestfailed', (request) => {
+    page.on('requestfailed', async (request) => {
       this.logger.error('Request failed', {
         url: request.url(),
         failure: request.failure()?.errorText
@@ -147,9 +147,9 @@ export class BrowserManager {
         'high'
       );
 
-      // Store in session
+      // Store in session with deduplication
       if (this.currentSessionId) {
-        this.sessionManager.addError(this.currentSessionId, webError);
+        await this.sessionManager.addError(this.currentSessionId, webError);
       }
     });
   }
@@ -226,6 +226,69 @@ export class BrowserManager {
       return {
         exists: false,
         size: 0
+      };
+    }
+  }
+
+  /**
+   * Captures Web Vitals and performance metrics
+   * @param page - Playwright page instance
+   * @returns Performance metrics and Web Vitals with ratings
+   */
+  async capturePerformanceMetrics(page: Page): Promise<{
+    metrics: import('../types/domain.js').PerformanceMetrics;
+    vitals: Array<{
+      name: string;
+      value: number;
+      rating: 'good' | 'needs-improvement' | 'poor';
+      threshold: number;
+    }>;
+  }> {
+    try {
+      const { captureWebVitals, detectSlowOperations } = await import('./performance-metrics.js');
+      const result = await captureWebVitals(page);
+
+      // Detect slow operations and create performance errors
+      const slowOps = detectSlowOperations(result.vitals);
+
+      for (const slowOp of slowOps) {
+        const performanceError: import('../types/domain.js').PerformanceError = {
+          type: 'performance',
+          id: (await import('../types/domain.js')).createErrorId(),
+          message: (await import('../types/domain.js')).toNonEmptyString(
+            `Slow ${slowOp.metric}: ${slowOp.value}ms (threshold: ${slowOp.threshold}ms)`
+          ),
+          timestamp: (await import('../types/domain.js')).toISO8601(),
+          severity: slowOp.severity,
+          frequency: 1,
+          metric: slowOp.metric,
+          value: slowOp.value,
+          threshold: slowOp.threshold
+        };
+
+        // Store performance error in session
+        if (this.currentSessionId) {
+          await this.sessionManager.addError(this.currentSessionId, performanceError);
+        }
+      }
+
+      this.logger.debug('Performance metrics captured', {
+        vitalsCount: result.vitals.length,
+        slowOpsCount: slowOps.length
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to capture performance metrics', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+
+      return {
+        metrics: {
+          domContentLoaded: 0,
+          loadComplete: 0
+        },
+        vitals: []
       };
     }
   }
