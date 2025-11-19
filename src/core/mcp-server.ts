@@ -17,7 +17,7 @@ import { SessionManager } from '../repositories/session-store.js';
 import { ErrorDetectionService } from '../services/error-detection.js';
 import { BrowserManager } from '../services/browser-manager.js';
 import type { WebError, SessionId } from '../types/domain.js';
-import { toNonEmptyString } from '../types/domain.js';
+import { toNonEmptyString, toISO8601 } from '../types/domain.js';
 
 // Initialize logging
 initializeLogging();
@@ -158,7 +158,59 @@ async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse
       
       // Wait for remaining time
       await page.waitForTimeout(options.waitTime);
-      
+
+      // Capture screenshot if requested
+      if (options.captureScreenshot) {
+        try {
+          const screenshot = await browserManager.captureScreenshot(page, {
+            type: 'png',
+            quality: 80,
+            fullPage: true
+          });
+
+          // Add screenshot to session
+          const currentSession = sessionManager.getSession(sessionId);
+          if (currentSession) {
+            sessionManager.updateSession(sessionId, {
+              ...currentSession,
+              screenshots: [...currentSession.screenshots, screenshot]
+            });
+          }
+        } catch (error) {
+          logger.error('Screenshot capture failed', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      // Capture DOM snapshot if configured
+      if (config.features.domSnapshots) {
+        try {
+          const domSnapshot = await browserManager.captureDOMSnapshot(page, 100_000);
+
+          // Add DOM snapshot to session metadata
+          const currentSession = sessionManager.getSession(sessionId);
+          if (currentSession) {
+            sessionManager.updateSession(sessionId, {
+              ...currentSession,
+              metadata: {
+                ...currentSession.metadata,
+                domSnapshot: {
+                  exists: domSnapshot.exists,
+                  data: domSnapshot.data,
+                  size: domSnapshot.size,
+                  timestamp: toISO8601()
+                }
+              }
+            });
+          }
+        } catch (error) {
+          logger.error('DOM snapshot capture failed', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
       // Get the session with collected errors
       const updatedSession = sessionManager.getSession(sessionId);
       

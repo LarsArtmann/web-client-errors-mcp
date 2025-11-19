@@ -154,6 +154,82 @@ export class BrowserManager {
     });
   }
 
+  /**
+   * Captures a screenshot of the current page
+   * @param page - Playwright page instance
+   * @param quality - JPEG quality (1-100), only for JPEG format
+   * @returns Base64-encoded screenshot string
+   */
+  async captureScreenshot(
+    page: Page,
+    options: {
+      quality?: number;
+      type?: 'png' | 'jpeg';
+      fullPage?: boolean;
+    } = {}
+  ): Promise<string> {
+    try {
+      const screenshot = await page.screenshot({
+        type: options.type || 'png',
+        quality: options.quality || 80,
+        fullPage: options.fullPage !== false // Default to full page
+      });
+
+      this.logger.debug('Screenshot captured', {
+        type: options.type || 'png',
+        fullPage: options.fullPage !== false
+      });
+
+      // Convert Buffer to base64 string
+      return screenshot.toString('base64');
+    } catch (error) {
+      this.logger.error('Failed to capture screenshot', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Captures DOM snapshot with XSS sanitization
+   * @param page - Playwright page instance
+   * @param maxSize - Maximum size in bytes (default: 100KB)
+   * @returns Sanitized HTML snapshot
+   */
+  async captureDOMSnapshot(
+    page: Page,
+    maxSize: number = 100_000
+  ): Promise<{ exists: boolean; data?: string; size: number }> {
+    try {
+      const html = await page.content();
+
+      // Import sanitization dynamically to avoid circular dependency
+      const { sanitizeHTML } = await import('../utils/sanitize.js');
+      const sanitized = sanitizeHTML(html, maxSize);
+
+      this.logger.debug('DOM snapshot captured', {
+        originalSize: html.length,
+        sanitizedSize: sanitized.length,
+        truncated: sanitized.includes('[truncated]')
+      });
+
+      return {
+        exists: true,
+        data: sanitized,
+        size: sanitized.length
+      };
+    } catch (error) {
+      this.logger.error('Failed to capture DOM snapshot', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+
+      return {
+        exists: false,
+        size: 0
+      };
+    }
+  }
+
   async cleanup(): Promise<void> {
     if (this.browser && this.browser.isConnected()) {
       this.logger.info('Closing browser');
