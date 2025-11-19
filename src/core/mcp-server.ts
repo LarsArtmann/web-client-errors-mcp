@@ -18,6 +18,7 @@ import { ErrorDetectionService } from '../services/error-detection.js';
 import { BrowserManager } from '../services/browser-manager.js';
 import type { WebError, SessionId } from '../types/domain.js';
 import { toNonEmptyString, toISO8601 } from '../types/domain.js';
+import { createRateLimiter } from '../utils/rate-limiter.js';
 
 // Initialize logging
 initializeLogging();
@@ -27,6 +28,12 @@ const logger = getAppLogger('mcp-server');
 const sessionManager = new SessionManager();
 const browserManager = new BrowserManager(sessionManager); // Pass sessionManager to share instance!
 const errorDetectionService = new ErrorDetectionService();
+
+// Initialize rate limiter: 10 requests per minute per URL
+const rateLimiter = createRateLimiter({
+  limit: 10,
+  windowSeconds: 60
+});
 
 // Validation schemas
 const DetectErrorsSchema = z.object({
@@ -123,9 +130,33 @@ async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse
   
   try {
     const options = DetectErrorsSchema.parse(request.params.arguments);
-    
+
+    // Rate limit check: 10 requests per minute per URL
+    const limitCheck = await rateLimiter.checkLimit(options.url);
+    if (!limitCheck.ok) {
+      const { retryAfter, limit, window } = limitCheck.error;
+      logger.warn('Rate limit exceeded', {
+        url: options.url,
+        limit,
+        window,
+        retryAfter
+      });
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            error: 'Rate limit exceeded',
+            message: `Too many requests. Please retry after ${retryAfter} seconds.`,
+            limit,
+            window,
+            retryAfter
+          })
+        }]
+      };
+    }
+
     logger.info('Starting error detection', { url: options.url, sessionId: options.sessionId });
-    
+
     // Create session
     const config = getConfig();
     const sessionId = sessionManager.createSession(options.url, {
