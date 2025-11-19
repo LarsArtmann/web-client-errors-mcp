@@ -24,7 +24,7 @@ export const toISO8601 = (date: Date = new Date()): ISO8601String => {
 export const toNonEmptyString = (s: string): NonEmptyString => {
   const trimmed = s.trim();
   if (trimmed.length === 0) {
-    throw new Error('String cannot be empty');
+    throw new Error("String cannot be empty");
   }
   return trimmed as NonEmptyString;
 };
@@ -38,8 +38,14 @@ export const createErrorId = (): ErrorId => {
 };
 
 // 2. DISCRIMINATED UNIONS - NO MORE TYPE AMBIGUITY
-export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type ErrorType = 'javascript' | 'network' | 'resource' | 'console' | 'performance' | 'security';
+export type ErrorSeverity = "low" | "medium" | "high" | "critical";
+export type ErrorType =
+  | "javascript"
+  | "network"
+  | "resource"
+  | "console"
+  | "performance"
+  | "security";
 
 export interface BaseWebError {
   readonly id: ErrorId;
@@ -50,7 +56,7 @@ export interface BaseWebError {
 }
 
 export interface JavaScriptError extends BaseWebError {
-  readonly type: 'javascript';
+  readonly type: "javascript";
   readonly stack: NonEmptyString;
   readonly line: number;
   readonly column: number;
@@ -58,39 +64,45 @@ export interface JavaScriptError extends BaseWebError {
 }
 
 export interface NetworkError extends BaseWebError {
-  readonly type: 'network';
+  readonly type: "network";
   readonly url: string;
   readonly statusCode: number; // Always present, even if 0
   readonly responseTime: number;
 }
 
 export interface ResourceError extends BaseWebError {
-  readonly type: 'resource';
+  readonly type: "resource";
   readonly url: string;
   readonly statusCode: number;
   readonly contentType?: string;
 }
 
 export interface ConsoleError extends BaseWebError {
-  readonly type: 'console';
-  readonly level: 'error' | 'warning';
+  readonly type: "console";
+  readonly level: "error" | "warning";
   readonly source?: string;
 }
 
 export interface PerformanceError extends BaseWebError {
-  readonly type: 'performance';
+  readonly type: "performance";
   readonly metric: string;
   readonly value: number;
   readonly threshold: number;
 }
 
 export interface SecurityError extends BaseWebError {
-  readonly type: 'security';
+  readonly type: "security";
   readonly violation: string;
   readonly blocked: boolean;
 }
 
-export type WebError = JavaScriptError | NetworkError | ResourceError | ConsoleError | PerformanceError | SecurityError;
+export type WebError =
+  | JavaScriptError
+  | NetworkError
+  | ResourceError
+  | ConsoleError
+  | PerformanceError
+  | SecurityError;
 
 // 3. EXPLICIT STATE - NO MORE OPTIONAL AMBIGUITY
 export interface DOMSnapshot {
@@ -156,10 +168,10 @@ export const createJavaScriptError = (
   line: number,
   column: number,
   url: string,
-  severity: ErrorSeverity = 'medium'
+  severity: ErrorSeverity = "medium",
 ): JavaScriptError => {
   const error = {
-    type: 'javascript' as const,
+    type: "javascript" as const,
     id: createErrorId(),
     message: toNonEmptyString(message),
     timestamp: toISO8601(),
@@ -170,7 +182,7 @@ export const createJavaScriptError = (
     column: Math.max(0, column),
     url,
   };
-  
+
   return Object.freeze(error);
 };
 
@@ -179,23 +191,24 @@ export const createNetworkError = (
   url: string,
   responseTime: number,
   statusCode: number = 0, // Default to 0 if no status code
-  severity: ErrorSeverity = 'medium'
-): NetworkError => ({
-  type: 'network',
-  id: createErrorId(),
-  message: toNonEmptyString(message),
-  timestamp: toISO8601(),
-  severity,
-  frequency: 0, // Always present!
-  url,
-  statusCode: Math.max(0, statusCode), // Ensure non-negative
-  responseTime: Math.max(0, responseTime),
-});
+  severity: ErrorSeverity = "medium",
+): NetworkError =>
+  ({
+    type: "network",
+    id: createErrorId(),
+    message: toNonEmptyString(message),
+    timestamp: toISO8601(),
+    severity,
+    frequency: 0, // Always present!
+    url,
+    statusCode: Math.max(0, statusCode), // Ensure non-negative
+    responseTime: Math.max(0, responseTime),
+  });
 
 export const createErrorSession = (
   url: string,
   metadata: SessionMetadata,
-  sessionId?: SessionId
+  sessionId?: SessionId,
 ): ErrorSession => ({
   id: sessionId || createSessionId(),
   url,
@@ -211,12 +224,17 @@ export class SessionManager {
   private readonly ttlMs: number;
   private cleanupTimer?: NodeJS.Timeout;
 
-  constructor(ttlMs: number = 30 * 60 * 1000) { // 30 minutes default
+  constructor(ttlMs: number = 30 * 60 * 1000) {
+    // 30 minutes default
     this.ttlMs = ttlMs;
     this.startCleanup();
   }
 
-  createSession(url: string, metadata: SessionMetadata, sessionId?: SessionId): SessionId {
+  createSession(
+    url: string,
+    metadata: SessionMetadata,
+    sessionId?: SessionId,
+  ): SessionId {
     const session = createErrorSession(url, metadata, sessionId);
     this.sessions.set(session.id, session);
     return session.id;
@@ -236,7 +254,10 @@ export class SessionManager {
     return session;
   }
 
-  updateSession(id: SessionId, updates: Partial<ErrorSession>): ErrorSession | undefined {
+  updateSession(
+    id: SessionId,
+    updates: Partial<ErrorSession>,
+  ): ErrorSession | undefined {
     const current = this.getSession(id);
     if (!current) return undefined;
 
@@ -263,9 +284,12 @@ export class SessionManager {
   }
 
   private startCleanup(): void {
-    this.cleanupTimer = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000); // Every 5 minutes
+    this.cleanupTimer = setInterval(
+      () => {
+        this.cleanup();
+      },
+      5 * 60 * 1000,
+    ); // Every 5 minutes
   }
 
   private cleanup(): void {

@@ -2,7 +2,7 @@
 
 // MCP Types (based on actual SDK types)
 export interface CallToolRequest {
-  method: 'tools/call';
+  method: "tools/call";
   params: {
     name: string;
     arguments?: Record<string, unknown>;
@@ -53,7 +53,13 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
-export type LogLevel = 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal';
+export type LogLevel =
+  | "trace"
+  | "debug"
+  | "info"
+  | "warning"
+  | "error"
+  | "fatal";
 
 export interface Logger {
   debug(message: string, context?: LogContext): void;
@@ -141,21 +147,28 @@ export interface ServerConfig {
 }
 
 // Type guards and validators
-export function isCallToolRequest(request: unknown): request is CallToolRequest {
+export function isCallToolRequest(
+  request: unknown,
+): request is CallToolRequest {
   return (
-    typeof request === 'object' &&
+    typeof request === "object" &&
     request !== null &&
-    'method' in request &&
-    (request as CallToolRequest).method === 'tools/call' &&
-    'params' in request &&
-    typeof (request as CallToolRequest).params === 'object'
+    "method" in request &&
+    (request as CallToolRequest).method === "tools/call" &&
+    "params" in request &&
+    typeof (request as CallToolRequest).params === "object"
   );
 }
 
-export function hasValidArguments(request: CallToolRequest): request is CallToolRequest & {
-  params: CallToolRequest['params'] & { arguments: Record<string, unknown> };
+export function hasValidArguments(
+  request: CallToolRequest,
+): request is CallToolRequest & {
+  params: CallToolRequest["params"] & { arguments: Record<string, unknown> };
 } {
-  return typeof request.params.arguments === 'object' && request.params.arguments !== null;
+  return (
+    typeof request.params.arguments === "object" &&
+    request.params.arguments !== null
+  );
 }
 
 // Utility types for better type safety

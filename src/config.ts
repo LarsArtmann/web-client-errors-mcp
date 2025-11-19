@@ -1,6 +1,6 @@
 // Note: Zod imports temporarily disabled for testing
 // Configuration will be validated at API layer when needed
-import { z } from 'zod';
+import { z } from "zod";
 
 // Type definition for ServerConfig
 export type ServerConfig = {
@@ -16,7 +16,7 @@ export type ServerConfig = {
     maxErrors: number;
   };
   logging: {
-    level: 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal';
+    level: "trace" | "debug" | "info" | "warning" | "error" | "fatal";
     structured: boolean;
     redactSensitiveData: boolean;
   };
@@ -37,25 +37,29 @@ export const DEFAULT_CONFIG: ServerConfig = {
   browser: {
     headless: true,
     viewport: { width: 1920, height: 1080 },
-    userAgent: 'Mozilla/5.0 (Web Client Errors MCP)',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    userAgent: "Mozilla/5.0 (Web Client Errors MCP)",
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+    ],
   },
   thresholds: {
     slowResponse: 10000,
     sessionTimeout: 300000,
-    maxErrors: 1000
+    maxErrors: 1000,
   },
   logging: {
-    level: 'info',
+    level: "info",
     structured: true,
-    redactSensitiveData: true
+    redactSensitiveData: true,
   },
   features: {
     domSnapshots: true,
     performanceMetrics: true,
     errorDeduplication: true,
-    sentryIntegration: false
-  }
+    sentryIntegration: false,
+  },
 };
 
 let globalConfig: ServerConfig = DEFAULT_CONFIG;
@@ -70,21 +74,21 @@ export function getConfig(): ServerConfig {
 
 export function validateConfig(config: unknown): ServerConfig {
   // Basic validation without Zod to avoid import conflicts
-  if (!config || typeof config !== 'object') {
-    throw new Error('Configuration must be an object');
+  if (!config || typeof config !== "object") {
+    throw new Error("Configuration must be an object");
   }
-  
+
   const cfg = config as any;
-  
-  if (!cfg.browser || typeof cfg.browser.headless !== 'boolean') {
-    throw new Error('Invalid browser configuration');
+
+  if (!cfg.browser || typeof cfg.browser.headless !== "boolean") {
+    throw new Error("Invalid browser configuration");
   }
-  if (!cfg.thresholds || typeof cfg.thresholds.sessionTimeout !== 'number') {
-    throw new Error('Invalid thresholds configuration');
+  if (!cfg.thresholds || typeof cfg.thresholds.sessionTimeout !== "number") {
+    throw new Error("Invalid thresholds configuration");
   }
-  if (!cfg.features || typeof cfg.features.domSnapshots !== 'boolean') {
-    throw new Error('Invalid features configuration');
+  if (!cfg.features || typeof cfg.features.domSnapshots !== "boolean") {
+    throw new Error("Invalid features configuration");
   }
-  
+
   return config as ServerConfig;
 }

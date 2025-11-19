@@ -13,14 +13,20 @@ export const isISO8601 = (s: string): s is ISO8601String => {
 
 export const createErrorId = (input: string): ErrorId => {
   if (!input || input.trim().length === 0) {
-    throw new Error('Error ID cannot be empty');
+    throw new Error("Error ID cannot be empty");
   }
   return `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as ErrorId;
 };
 
 // 2. Discriminated unions for TYPE SAFETY
-export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type ErrorType = 'javascript' | 'network' | 'resource' | 'console' | 'performance' | 'security';
+export type ErrorSeverity = "low" | "medium" | "high" | "critical";
+export type ErrorType =
+  | "javascript"
+  | "network"
+  | "resource"
+  | "console"
+  | "performance"
+  | "security";
 
 export interface BaseWebError {
   readonly id: ErrorId;
@@ -32,7 +38,7 @@ export interface BaseWebError {
 }
 
 export interface JavaScriptError extends BaseWebError {
-  readonly type: 'javascript';
+  readonly type: "javascript";
   readonly stack: NonEmptyString;
   readonly line: number;
   readonly column: number;
@@ -40,13 +46,19 @@ export interface JavaScriptError extends BaseWebError {
 }
 
 export interface NetworkError extends BaseWebError {
-  readonly type: 'network';
+  readonly type: "network";
   readonly url: string;
   readonly statusCode?: number;
   readonly responseTime: number;
 }
 
-export type WebError = JavaScriptError | NetworkError | ResourceError | ConsoleError | PerformanceError | SecurityError;
+export type WebError =
+  | JavaScriptError
+  | NetworkError
+  | ResourceError
+  | ConsoleError
+  | PerformanceError
+  | SecurityError;
 
 // 3. Explicit state for optional features
 export interface DOMSnapshot {
@@ -86,7 +98,11 @@ export interface ErrorSession {
 
 // 5. Proper event sourcing pattern
 export interface ErrorEvent {
-  readonly type: 'ERROR_DETECTED' | 'ERROR_CLASSIFIED' | 'SESSION_CREATED' | 'SESSION_COMPLETED';
+  readonly type:
+    | "ERROR_DETECTED"
+    | "ERROR_CLASSIFIED"
+    | "SESSION_CREATED"
+    | "SESSION_COMPLETED";
   readonly sessionId: SessionId;
   readonly timestamp: ISO8601String;
   readonly data: unknown;
