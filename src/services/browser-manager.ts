@@ -73,13 +73,15 @@ export class BrowserManager {
         error.message,
         error.stack || 'No stack trace',
         0, // Line info available in error.message parsing
-        0, // Column info available in error.message parsing  
+        0, // Column info available in error.message parsing
         page.url(),
         'high' // JS errors are high severity by default
       );
-      
-      // Store in session (would need session context)
-      // this.sessionManager.addError(sessionId, webError);
+
+      // Store in session
+      if (this.currentSessionId) {
+        this.sessionManager.addError(this.currentSessionId, webError);
+      }
     });
 
     // Console error detection
@@ -144,9 +146,11 @@ export class BrowserManager {
         0,
         'high'
       );
-      
+
       // Store in session
-      // this.sessionManager.addError(sessionId, webError);
+      if (this.currentSessionId) {
+        this.sessionManager.addError(this.currentSessionId, webError);
+      }
     });
   }
 

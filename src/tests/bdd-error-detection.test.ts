@@ -1,23 +1,16 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { 
-  type WebError, 
-  type SessionId, 
-  type SessionMetadata,
-  createJavaScriptError,
-  createNetworkError
-} from '../types/domain.js';
 import { ErrorDetectionService } from '../services/error-detection.js';
 import { SessionManager } from '../repositories/session-store.js';
 
 describe('BDD: Web Client Error Detection', () => {
   let errorDetectionService: ErrorDetectionService;
   let sessionManager: SessionManager;
-  let testSessionId: SessionId;
 
   beforeEach(() => {
     errorDetectionService = new ErrorDetectionService();
     sessionManager = new SessionManager(1000); // 1 second TTL for testing
-    testSessionId = sessionManager.createSession('https://example.com', {
+    // Create test session for setup
+    sessionManager.createSession('https://example.com', {
       userAgent: 'Test User Agent',
       viewport: { width: 1920, height: 1080 },
       platform: 'test',
@@ -202,7 +195,8 @@ describe('BDD: Web Client Error Detection', () => {
     it('Then store should maintain statistics', () => {
       // Create multiple errors
       for (let i = 0; i < 5; i++) {
-        const error = errorDetectionService.createJavaScriptError(
+        // Create error (would be added to ErrorStore in full implementation)
+        errorDetectionService.createJavaScriptError(
           `Test error ${i}`,
           `Test stack ${i}`,
           i,

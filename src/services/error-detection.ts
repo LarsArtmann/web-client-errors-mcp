@@ -1,14 +1,10 @@
-import { 
-  type WebError, 
-  type SessionId, 
-  createErrorId, 
-  type ErrorSeverity, 
-  createJavaScriptError, 
+import {
+  type WebError,
+  type ErrorSeverity,
+  createJavaScriptError,
   createNetworkError,
   type JavaScriptError,
-  type NetworkError,
-  toISO8601,
-  ErrorId
+  type NetworkError
 } from '../types/domain.js';
 import { getAppLogger } from '../logger.js';
 

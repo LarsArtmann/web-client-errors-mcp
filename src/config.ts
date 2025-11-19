@@ -1,37 +1,7 @@
-// Note: Zod imports temporarily disabled for testing
-// Configuration will be validated at API layer when needed
-import { z } from 'zod';
+// Note: Zod validation is handled at the API layer in mcp-server.ts
+// Configuration uses TypeScript types for compile-time safety
 
-// Type definition for ServerConfig
-export type ServerConfig = {
-  browser: {
-    headless: boolean;
-    viewport: { width: number; height: number };
-    userAgent: string;
-    args: string[];
-  };
-  thresholds: {
-    slowResponse: number;
-    sessionTimeout: number;
-    maxErrors: number;
-  };
-  logging: {
-    level: 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal';
-    structured: boolean;
-    redactSensitiveData: boolean;
-  };
-  features: {
-    domSnapshots: boolean;
-    performanceMetrics: boolean;
-    errorDeduplication: boolean;
-    sentryIntegration: boolean;
-  };
-  sentry?: {
-    dsn: string;
-    environment: string;
-    tracesSampleRate: number;
-  };
-};
+import type { ServerConfig } from './types.js';
 
 export const DEFAULT_CONFIG: ServerConfig = {
   browser: {
@@ -73,9 +43,10 @@ export function validateConfig(config: unknown): ServerConfig {
   if (!config || typeof config !== 'object') {
     throw new Error('Configuration must be an object');
   }
-  
-  const cfg = config as any;
-  
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cfg = config as any; // Validated below with runtime checks
+
   if (!cfg.browser || typeof cfg.browser.headless !== 'boolean') {
     throw new Error('Invalid browser configuration');
   }
@@ -85,6 +56,6 @@ export function validateConfig(config: unknown): ServerConfig {
   if (!cfg.features || typeof cfg.features.domSnapshots !== 'boolean') {
     throw new Error('Invalid features configuration');
   }
-  
+
   return config as ServerConfig;
 }
