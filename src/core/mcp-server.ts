@@ -25,7 +25,7 @@ const logger = getAppLogger('mcp-server');
 
 // Initialize services
 const sessionManager = new SessionManager();
-const browserManager = new BrowserManager();
+const browserManager = new BrowserManager(sessionManager); // Pass sessionManager to share instance!
 const errorDetectionService = new ErrorDetectionService();
 
 // Validation schemas

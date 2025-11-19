@@ -164,13 +164,13 @@ export const createJavaScriptError = (
     message: toNonEmptyString(message),
     timestamp: toISO8601(),
     severity,
-    frequency: 0, // Always present!
+    frequency: 1, // Each error starts with frequency 1 (incremented by deduplication)
     stack: toNonEmptyString(stack),
     line: Math.max(0, line),
     column: Math.max(0, column),
     url,
   };
-  
+
   return Object.freeze(error);
 };
 
@@ -180,17 +180,21 @@ export const createNetworkError = (
   responseTime: number,
   statusCode: number = 0, // Default to 0 if no status code
   severity: ErrorSeverity = 'medium'
-): NetworkError => ({
-  type: 'network',
-  id: createErrorId(),
-  message: toNonEmptyString(message),
-  timestamp: toISO8601(),
-  severity,
-  frequency: 0, // Always present!
-  url,
-  statusCode: Math.max(0, statusCode), // Ensure non-negative
-  responseTime: Math.max(0, responseTime),
-});
+): NetworkError => {
+  const error = {
+    type: 'network' as const,
+    id: createErrorId(),
+    message: toNonEmptyString(message),
+    timestamp: toISO8601(),
+    severity,
+    frequency: 1, // Each error starts with frequency 1 (incremented by deduplication)
+    url,
+    statusCode: Math.max(0, statusCode), // Ensure non-negative
+    responseTime: Math.max(0, responseTime),
+  };
+
+  return Object.freeze(error); // Freeze for immutability consistency!
+};
 
 export const createErrorSession = (
   url: string,
@@ -286,34 +290,9 @@ export class SessionManager {
   }
 }
 
-// 7. IMMUTABLE ERROR STORE - THREAD SAFE
-export class ErrorStore {
-  private readonly errors = new Map<ErrorId, WebError>();
-
-  addError(error: WebError): void {
-    this.errors.set(error.id, Object.freeze(error)); // Immutable!
-  }
-
-  getError(id: ErrorId): WebError | undefined {
-    return this.errors.get(id);
-  }
-
-  getErrorsBySession(_sessionId: SessionId): readonly WebError[] {
-    // In a real implementation, we'd index by session ID
-    return Array.from(this.errors.values());
-  }
-
-  getAllErrors(): readonly WebError[] {
-    return Array.from(this.errors.values());
-  }
-
-  clear(): void {
-    this.errors.clear();
-  }
-
-  size(): number {
-    return this.errors.size;
-  }
-}
-
-// All types are already exported above - no need to re-export
+// Note: ErrorStore was removed as it was unused dead code (never instantiated).
+// SessionManager already handles error storage per session.
+// If global error indexing across sessions is needed in the future, implement:
+// - A separate ErrorIndexService with proper session-to-error mapping
+// - Integration with SessionManager for cross-session error queries
+// - Proper implementation with actual indexing instead of ignoring sessionId parameter
