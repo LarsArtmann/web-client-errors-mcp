@@ -42,10 +42,7 @@ const DetectErrorsSchema = z.object({
 const AnalyzeErrorsSchema = z.object({
   sessionId: z.string().min(1, "Session ID is required"),
   includeSuggestions: z.boolean().optional().default(true),
-  severity: z
-    .enum(["error", "warning", "info", "all"])
-    .optional()
-    .default("all"),
+  severity: z.enum(["error", "warning", "info", "all"]).optional().default("all"),
 });
 
 const GetErrorDetailsSchema = z.object({
@@ -120,9 +117,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-async function handleDetectErrors(
-  request: CallToolRequest,
-): Promise<MCPResponse> {
+async function handleDetectErrors(request: CallToolRequest): Promise<MCPResponse> {
   if (!hasValidArguments(request)) {
     return {
       content: [
@@ -244,9 +239,7 @@ async function handleDetectErrors(
   }
 }
 
-async function handleAnalyzeErrorSession(
-  request: CallToolRequest,
-): Promise<MCPResponse> {
+async function handleAnalyzeErrorSession(request: CallToolRequest): Promise<MCPResponse> {
   if (!hasValidArguments(request)) {
     return {
       content: [
@@ -303,9 +296,7 @@ async function handleAnalyzeErrorSession(
         timestamp: error.timestamp,
         type: error.type,
         severity: error.severity,
-        message:
-          error.message.substring(0, 100) +
-          (error.message.length > 100 ? "..." : ""),
+        message: error.message.substring(0, 100) + (error.message.length > 100 ? "..." : ""),
       })),
       severityBreakdown: {
         low: errors.filter((e) => e.severity === "low").length,
@@ -341,9 +332,7 @@ async function handleAnalyzeErrorSession(
   }
 }
 
-async function handleGetErrorDetails(
-  request: CallToolRequest,
-): Promise<MCPResponse> {
+async function handleGetErrorDetails(request: CallToolRequest): Promise<MCPResponse> {
   if (!hasValidArguments(request)) {
     return {
       content: [
@@ -389,18 +378,14 @@ async function handleGetErrorDetails(
     }
 
     // Generate analysis using error detection service
-    const suggestions = errorDetectionService.generateErrorSuggestions([
-      targetError,
-    ]);
+    const suggestions = errorDetectionService.generateErrorSuggestions([targetError]);
 
     const details = {
       ...targetError,
       suggestions,
       analysis: {
         frequency: targetError.frequency || 1,
-        patternType: errorDetectionService.analyzeErrorPatterns([
-          targetError,
-        ])[0],
+        patternType: errorDetectionService.analyzeErrorPatterns([targetError])[0],
         potentialCauses: [
           targetError.type === "javascript" ? "Code execution error" : null,
           targetError.type === "network" ? "Network connectivity issue" : null,
@@ -464,10 +449,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const allSessions = sessionManager.getAllSessions();
       const allErrors = allSessions
         .flatMap((session) => session.errors)
-        .sort(
-          (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        )
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 100); // Last 100 errors
 
       return {
@@ -539,8 +521,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         {} as Record<string, number>,
       );
 
-      const errorPatterns =
-        errorDetectionService.analyzeErrorPatterns(allErrors);
+      const errorPatterns = errorDetectionService.analyzeErrorPatterns(allErrors);
 
       return {
         contents: [
@@ -552,9 +533,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
                 totalSessions: allSessions.length,
                 totalErrors: allErrors.length,
                 averageErrorsPerSession:
-                  allSessions.length > 0
-                    ? allErrors.length / allSessions.length
-                    : 0,
+                  allSessions.length > 0 ? allErrors.length / allSessions.length : 0,
                 errorsByType,
                 errorsBySeverity,
                 topErrorPatterns: errorPatterns.slice(0, 10),
@@ -605,8 +584,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "detect_errors",
-        description:
-          "Detect client-side errors on a website using Playwright browser automation",
+        description: "Detect client-side errors on a website using Playwright browser automation",
         inputSchema: {
           type: "object",
           properties: {
@@ -616,8 +594,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             waitTime: {
               type: "number",
-              description:
-                "Time to wait for errors in milliseconds (default: 5000)",
+              description: "Time to wait for errors in milliseconds (default: 5000)",
               default: 5000,
             },
             captureScreenshot: {
@@ -627,20 +604,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             includeNetworkErrors: {
               type: "boolean",
-              description:
-                "Include network errors in detection (default: true)",
+              description: "Include network errors in detection (default: true)",
               default: true,
             },
             includeConsoleWarnings: {
               type: "boolean",
-              description:
-                "Include console warnings in results (default: true)",
+              description: "Include console warnings in results (default: true)",
               default: true,
             },
             interactWithPage: {
               type: "boolean",
-              description:
-                "Interact with page to trigger potential errors (default: false)",
+              description: "Interact with page to trigger potential errors (default: false)",
               default: false,
             },
             sessionId: {

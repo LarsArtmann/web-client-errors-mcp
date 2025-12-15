@@ -2,8 +2,30 @@
   "name": "web-client-errors-mcp",
   "version": "1.0.0",
   "description": "MCP server for detecting and analyzing client-side web errors - perfect for AI coding agents using CRUSH",
-  "main": "dist/core/mcp-server.js",
+  "keywords": [
+    "ai-agents",
+    "browser-errors",
+    "client-side-errors",
+    "crush",
+    "error-detection",
+    "javascript-errors",
+    "mcp",
+    "model-context-protocol",
+    "playwright",
+    "web-monitoring"
+  ],
+  "homepage": "https://github.com/LarsArtmann/web-client-errors-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/LarsArtmann/web-client-errors-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LarsArtmann/web-client-errors-mcp.git"
+  },
+  "author": "Lars Artmann <lars@artmann.ai>",
+  "license": "MIT",
   "type": "module",
+  "main": "dist/core/mcp-server.js",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -14,20 +36,6 @@
     "format": "prettier --write src/**/*.{ts,tsx}",
     "prepare": "npm run build"
   },
-  "keywords": [
-    "mcp",
-    "model-context-protocol",
-    "browser-errors",
-    "web-monitoring",
-    "crush",
-    "ai-agents",
-    "playwright",
-    "error-detection",
-    "client-side-errors",
-    "javascript-errors"
-  ],
-  "author": "Lars Artmann <lars@artmann.ai>",
-  "license": "MIT",
   "dependencies": {
     "@logtape/logtape": "^1.2.2",
     "@modelcontextprotocol/sdk": "^1.24.3",
@@ -45,13 +53,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/LarsArtmann/web-client-errors-mcp.git"
-  },
-  "bugs": {
-    "url": "https://github.com/LarsArtmann/web-client-errors-mcp/issues"
-  },
-  "homepage": "https://github.com/LarsArtmann/web-client-errors-mcp#readme"
+  }
 }

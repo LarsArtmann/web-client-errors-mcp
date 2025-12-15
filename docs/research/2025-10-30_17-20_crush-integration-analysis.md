@@ -17,6 +17,7 @@ Based on comprehensive research of CRUSH capabilities, your existing projects, a
 #### ✅ MCP Server (HIGHLY RECOMMENDED)
 
 **Why MCP fits CRUSH perfectly:**
+
 - **Native Support**: CRUSH has first-class MCP support with stdio, http, and sse transports
 - **Designed for LLMs**: MCP specifically enables AI agents to use tools and resources
 - **Existing Pattern**: Your `template-mcp-config` shows you already use MCP servers
@@ -24,6 +25,7 @@ Based on comprehensive research of CRUSH capabilities, your existing projects, a
 - **Resource Access**: MCP resources can expose error data in structured format
 
 **CRUSH MCP Configuration Example:**
+
 ```json
 {
   "mcpServers": {
@@ -42,6 +44,7 @@ Based on comprehensive research of CRUSH capabilities, your existing projects, a
 ```
 
 **Advantages for CRUSH:**
+
 - ✅ Works seamlessly with CRUSH's MCP architecture
 - ✅ Tool-based interactions (detect_errors, analyze_errors)
 - ✅ Structured responses optimized for LLM consumption
@@ -51,11 +54,13 @@ Based on comprehensive research of CRUSH capabilities, your existing projects, a
 #### ⚠️ LSP Implementation (LIMITED VIABILITY)
 
 **Why LSP is less suitable:**
+
 - **Not Designed for This**: LSP is for code intelligence, not browser error monitoring
 - **No Browser Integration**: LSP has no native browser automation capabilities
 - **Misaligned Purpose**: Would require hacking LSP protocol for unintended use case
 
 **Potential LSP Approach (not recommended):**
+
 ```typescript
 // Would require custom LSP extension with browser automation
 // Complex and non-standard approach
@@ -68,6 +73,7 @@ class WebErrorLSPServer implements ServerCapabilities {
 ```
 
 **Limitations:**
+
 - ❌ No native browser automation in LSP spec
 - ❌ Requires complex browser-LSP bridge
 - ❌ Not supported by CRUSH's LSP integration patterns
@@ -76,6 +82,7 @@ class WebErrorLSPServer implements ServerCapabilities {
 #### ❌ Traditional Approach (NOT RECOMMENDED)
 
 **Why traditional doesn't work for CRUSH:**
+
 - **No AI Integration**: CRUSH expects tool-based interactions
 - **Manual Operation**: Would require human intervention
 - **No Protocol**: CRUSH needs structured communication interface
@@ -87,6 +94,7 @@ class WebErrorLSPServer implements ServerCapabilities {
 #### 🔍 Key Findings from Your Projects
 
 **KeyCountdown Project** (Most Relevant):
+
 ```typescript
 // Already implements error detection pattern:
 page.on('pageerror', (error) => {
@@ -95,11 +103,13 @@ page.on('pageerror', (error) => {
 ```
 
 **Template MCP Config**:
+
 - Shows you understand MCP ecosystem
 - Uses bunx for package execution
 - Already includes browser automation servers
 
 **Performance Monitor** (Accounting-Pitch-Deck):
+
 - Traditional error tracking with `window.addEventListener('error')`
 - Shows need for structured error monitoring
 - Could be enhanced with MCP approach
@@ -118,6 +128,7 @@ page.on('pageerror', (error) => {
 #### 🏗️ Recommended Architecture: MCP Server for CRUSH
 
 **Phase 1: Core MCP Server**
+
 ```typescript
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -154,6 +165,7 @@ server.setRequestHandler('tools/list', async () => ({
 ```
 
 **Phase 2: Browser Integration**
+
 ```typescript
 // Use Playwright patterns from KeyCountdown
 import { chromium } from 'playwright';
@@ -161,10 +173,10 @@ import { chromium } from 'playwright';
 server.setRequestHandler('tools/call', async (request) => {
   if (request.params.name === 'detect_errors') {
     const { url, waitTime } = request.params.arguments;
-    
+
     const browser = await chromium.launch();
     const page = await browser.newPage();
-    
+
     // Error collection (based on KeyCountdown pattern)
     const errors: string[] = [];
     page.on('pageerror', (error) => {
@@ -175,15 +187,15 @@ server.setRequestHandler('tools/call', async (request) => {
         errors.push(msg.text());
       }
     });
-    
+
     await page.goto(url);
     await page.waitForTimeout(waitTime || 5000);
-    
+
     await browser.close();
-    
+
     return {
-      content: [{ 
-        type: 'text', 
+      content: [{
+        type: 'text',
         text: JSON.stringify({
           url,
           timestamp: new Date().toISOString(),
@@ -197,6 +209,7 @@ server.setRequestHandler('tools/call', async (request) => {
 ```
 
 **Phase 3: CRUSH Integration**
+
 ```json
 // .mcp.json for CRUSH
 {
@@ -216,39 +229,43 @@ server.setRequestHandler('tools/call', async (request) => {
 
 ### 4. Comparative Analysis
 
-| Aspect | MCP Server | LSP | Traditional |
-|---------|------------|------|------------|
-| **CRUSH Compatibility** | ✅ Native | ⚠️ Limited | ❌ None |
-| **Browser Automation** | ✅ Built-in | ❌ External Required | ✅ Manual |
-| **Tool Interface** | ✅ Perfect | ❌ Hacked | ❌ None |
-| **Real-time Updates** | ✅ Resources | ❌ Polling | ❌ Manual |
-| **LLM Optimization** | ✅ Designed | ❌ Repurposed | ❌ None |
-| **Development Speed** | ✅ Fast | ⚠️ Complex | ❌ Not AI-friendly |
-| **Maintenance** | ✅ Standard | ❌ Custom | ❌ Manual |
+| Aspect                  | MCP Server   | LSP                  | Traditional        |
+| ----------------------- | ------------ | -------------------- | ------------------ |
+| **CRUSH Compatibility** | ✅ Native    | ⚠️ Limited           | ❌ None            |
+| **Browser Automation**  | ✅ Built-in  | ❌ External Required | ✅ Manual          |
+| **Tool Interface**      | ✅ Perfect   | ❌ Hacked            | ❌ None            |
+| **Real-time Updates**   | ✅ Resources | ❌ Polling           | ❌ Manual          |
+| **LLM Optimization**    | ✅ Designed  | ❌ Repurposed        | ❌ None            |
+| **Development Speed**   | ✅ Fast      | ⚠️ Complex           | ❌ Not AI-friendly |
+| **Maintenance**         | ✅ Standard  | ❌ Custom            | ❌ Manual          |
 
 ---
 
 ### 5. Implementation Plan
 
 #### Step 1: MCP Server Foundation (Week 1)
+
 - [ ] Set up MCP server structure
 - [ ] Implement `detect_errors` tool
 - [ ] Add basic Playwright integration
 - [ ] Test with CRUSH
 
-#### Step 2: Advanced Features (Week 2)  
+#### Step 2: Advanced Features (Week 2)
+
 - [ ] Add error analysis capabilities
 - [ ] Implement error resources
 - [ ] Add browser context capture
 - [ ] Performance optimization
 
 #### Step 3: CRUSH Integration (Week 3)
+
 - [ ] Package for bunx distribution
 - [ ] Update template-mcp-config
 - [ ] Add comprehensive testing
 - [ ] Documentation and examples
 
 #### Step 4: Service Integration (Future)
+
 - [ ] Sentry API integration
 - [ ] Rollbar webhook support
 - [ ] Error aggregation
@@ -261,7 +278,7 @@ server.setRequestHandler('tools/call', async (request) => {
 **Build the MCP Server** - Here's why:
 
 1. **Perfect CRUSH Fit**: MCP is exactly what CRUSH was designed for
-2. **Leverages Your Skills**: Uses your existing Playwright and MCP experience  
+2. **Leverages Your Skills**: Uses your existing Playwright and MCP experience
 3. **Market Gap**: No existing MCP server for client-side errors
 4. **LLM Native**: Designed from ground up for AI agent usage
 5. **Future-Proof**: Extensible architecture for service integrations

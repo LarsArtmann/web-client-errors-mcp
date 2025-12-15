@@ -9,6 +9,7 @@ This MCP server does exactly one thing: finds client-side errors on websites for
 **File**: `/Users/larsartmann/.config/crush/crush.json`
 
 **Added**:
+
 ```json
 {
   "mcp": {
@@ -25,14 +26,17 @@ This MCP server does exactly one thing: finds client-side errors on websites for
 ## 🚀 Use with CRUSH
 
 ### Restart CRUSH
+
 Exit and restart CRUSH to load the new MCP server.
 
 ### Available Tools
+
 - **detect_errors** - Find errors on any website
 - **analyze_error_session** - Analyze error patterns
 - **get_error_details** - Investigate specific errors
 
 ### Basic Usage
+
 ```
 "detect errors on https://example.com"
 "analyze error session from previous detection"

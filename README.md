@@ -9,7 +9,7 @@ A Model Context Protocol (MCP) server that does exactly one thing: finds client-
 This project follows UNIX principles:
 
 - **Do one thing**: Detect client-side web errors
-- **Do it well**: Reliable, accurate, comprehensive detection  
+- **Do it well**: Reliable, accurate, comprehensive detection
 - **Work together**: Integrates seamlessly with CRUSH
 - **Handle text**: Natural language interface through CRUSH
 - **Adapt**: Works on any website, any framework
@@ -17,6 +17,7 @@ This project follows UNIX principles:
 ## 📋 Quick Start with CRUSH
 
 ### Install and Configure
+
 ```bash
 git clone https://github.com/LarsArtmann/web-client-errors-mcp.git
 cd web-client-errors-mcp
@@ -25,6 +26,7 @@ bun run build
 ```
 
 Add to your CRUSH `.mcp.json`:
+
 ```json
 {
   "mcp": {
@@ -39,6 +41,7 @@ Add to your CRUSH `.mcp.json`:
 ```
 
 ### Use with CRUSH
+
 ```bash
 # Restart CRUSH, then:
 "detect errors on https://example.com"
@@ -48,28 +51,34 @@ Add to your CRUSH `.mcp.json`:
 ## 🛠️ Tools
 
 ### detect_errors
+
 Detects client-side errors on any website.
 
 **Parameters**:
+
 - `url` (required): Website to scan
 - `waitTime` (optional): Milliseconds to wait for errors (default: 5000)
 - `captureScreenshot` (optional): Take screenshot (default: true)
 
 **Example**: `"detect errors on https://mysite.com with 10 second wait"`
 
-### analyze_error_session  
+### analyze_error_session
+
 Analyzes collected errors to find patterns.
 
 **Parameters**:
+
 - `sessionId` (required): ID from error detection
 - `severity` (optional): Filter by error/warning/info (default: all)
 
 **Example**: `"analyze error session abc-123"`
 
 ### get_error_details
+
 Gets detailed information about a specific error.
 
 **Parameters**:
+
 - `errorId` (required): Error message or ID to investigate
 - `includeStackTrace` (optional): Include full stack trace (default: true)
 
@@ -89,7 +98,7 @@ bun run test       # Run tests
 This project follows UNIX philosophy:
 
 - **Do one thing**: Detect client-side web errors
-- **Do it well**: Reliable, accurate, comprehensive detection  
+- **Do it well**: Reliable, accurate, comprehensive detection
 - **Work together**: Integrates seamlessly with CRUSH
 - **Handle text**: Natural language interface through CRUSH
 - **Adapt**: Works on any website, any framework

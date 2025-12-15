@@ -1,8 +1,4 @@
-import {
-  getLogger,
-  configure,
-  type LogRecord as LogTapeRecord,
-} from "@logtape/logtape";
+import { getLogger, configure, type LogRecord as LogTapeRecord } from "@logtape/logtape";
 import { getConfig } from "./config.js";
 import type { LogContext, Logger } from "./types.js";
 
@@ -58,20 +54,17 @@ export function getAppLogger(category: string = "main"): Logger {
 
   if (!config.logging.structured) {
     // Simple console fallback with redaction
-    const logMethod =
-      (level: string) => (message: string, context?: LogContext) => {
-        const finalContext =
-          config.logging.redactSensitiveData && context
-            ? redactSensitiveData(context)
-            : context;
-        const logMessage = `[${new Date().toISOString()}] ${level.toUpperCase()}: ${message}`;
+    const logMethod = (level: string) => (message: string, context?: LogContext) => {
+      const finalContext =
+        config.logging.redactSensitiveData && context ? redactSensitiveData(context) : context;
+      const logMessage = `[${new Date().toISOString()}] ${level.toUpperCase()}: ${message}`;
 
-        if (finalContext && Object.keys(finalContext).length > 0) {
-          console.log(`${logMessage} ${JSON.stringify(finalContext)}`);
-        } else {
-          console.log(logMessage);
-        }
-      };
+      if (finalContext && Object.keys(finalContext).length > 0) {
+        console.log(`${logMessage} ${JSON.stringify(finalContext)}`);
+      } else {
+        console.log(logMessage);
+      }
+    };
 
     const logger: Logger = {
       debug: logMethod("debug"),

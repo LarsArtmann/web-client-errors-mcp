@@ -38,11 +38,7 @@ export const DEFAULT_CONFIG: ServerConfig = {
     headless: true,
     viewport: { width: 1920, height: 1080 },
     userAgent: "Mozilla/5.0 (Web Client Errors MCP)",
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-    ],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   },
   thresholds: {
     slowResponse: 10000,

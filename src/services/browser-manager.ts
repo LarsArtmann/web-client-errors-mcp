@@ -1,9 +1,4 @@
-import {
-  chromium,
-  type Browser,
-  type BrowserContext,
-  type Page,
-} from "playwright";
+import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { getAppLogger } from "../logger.js";
 import { getConfig } from "../config.js";
 import { SessionManager } from "../repositories/session-store.js";
@@ -58,10 +53,7 @@ export class BrowserManager {
     });
   }
 
-  async createPageWithContext(
-    sessionId: SessionId,
-    context?: BrowserContext,
-  ): Promise<Page> {
+  async createPageWithContext(sessionId: SessionId, context?: BrowserContext): Promise<Page> {
     this.setSession(sessionId);
     const ctx = context || (await this.createContext());
     const page = await ctx.newPage();

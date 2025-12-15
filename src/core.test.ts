@@ -40,17 +40,14 @@ describe("Core Logic Tests", () => {
 
       expect(matched).toBeDefined();
       expect(matched?.category).toBe("Property Access");
-      expect(matched?.suggestions).toContain(
-        "Check variable initialization before access",
-      );
+      expect(matched?.suggestions).toContain("Check variable initialization before access");
     });
 
     it("should identify Network Error patterns", () => {
       const patterns = [
         {
           name: "Network Error",
-          regex:
-            /NetworkError|Failed to fetch|CORS|Access-Control-Allow-Origin/,
+          regex: /NetworkError|Failed to fetch|CORS|Access-Control-Allow-Origin/,
           category: "Network",
           severity: "error",
           suggestions: ["Check network connectivity"],
@@ -85,11 +82,7 @@ describe("Core Logic Tests", () => {
 });
 
 // Helper functions for testing
-function generateErrorId(_error: {
-  message: string;
-  type: string;
-  timestamp: string;
-}): string {
+function generateErrorId(_error: { message: string; type: string; timestamp: string }): string {
   const hash = "abcdef1234567890"; // Mocked hash for testing
   return `error-${hash.substring(0, 8)}`;
 }

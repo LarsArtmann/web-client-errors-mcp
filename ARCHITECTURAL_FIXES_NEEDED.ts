@@ -98,11 +98,7 @@ export interface ErrorSession {
 
 // 5. Proper event sourcing pattern
 export interface ErrorEvent {
-  readonly type:
-    | "ERROR_DETECTED"
-    | "ERROR_CLASSIFIED"
-    | "SESSION_CREATED"
-    | "SESSION_COMPLETED";
+  readonly type: "ERROR_DETECTED" | "ERROR_CLASSIFIED" | "SESSION_CREATED" | "SESSION_COMPLETED";
   readonly sessionId: SessionId;
   readonly timestamp: ISO8601String;
   readonly data: unknown;

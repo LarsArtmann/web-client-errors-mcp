@@ -178,10 +178,7 @@ export class ErrorDetectionService {
   getMostCommonErrors(
     errors: readonly WebError[],
   ): Array<{ message: string; count: number; type: WebError["type"] }> {
-    const errorCounts = new Map<
-      string,
-      { count: number; type: WebError["type"] }
-    >();
+    const errorCounts = new Map<string, { count: number; type: WebError["type"] }>();
 
     errors.forEach((error) => {
       const key = error.message.substring(0, 100); // First 100 chars
@@ -201,36 +198,21 @@ export class ErrorDetectionService {
 
     errors.forEach((error) => {
       if (error.message.includes("undefined")) {
-        suggestions.push(
-          "Check if variable is properly initialized before use",
-        );
-        suggestions.push(
-          "Use optional chaining (?.) for safer property access",
-        );
+        suggestions.push("Check if variable is properly initialized before use");
+        suggestions.push("Use optional chaining (?.) for safer property access");
         suggestions.push("Add null/undefined checks before property access");
       }
       if (error.message.includes("TypeError")) {
-        suggestions.push(
-          "Verify data types of variables and function parameters",
-        );
+        suggestions.push("Verify data types of variables and function parameters");
       }
-      if (
-        error.message.includes("NetworkError") ||
-        error.message.includes("Failed to fetch")
-      ) {
-        suggestions.push(
-          "Check network connectivity and API endpoint availability",
-        );
+      if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch")) {
+        suggestions.push("Check network connectivity and API endpoint availability");
       }
       if (error.message.includes("CORS")) {
-        suggestions.push(
-          "Configure CORS headers on the server or use same-origin requests",
-        );
+        suggestions.push("Configure CORS headers on the server or use same-origin requests");
       }
       if (error.message.includes("404")) {
-        suggestions.push(
-          "Verify the requested resource exists and URL is correct",
-        );
+        suggestions.push("Verify the requested resource exists and URL is correct");
       }
     });
 

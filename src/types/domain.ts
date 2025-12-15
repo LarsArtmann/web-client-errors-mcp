@@ -230,11 +230,7 @@ export class SessionManager {
     this.startCleanup();
   }
 
-  createSession(
-    url: string,
-    metadata: SessionMetadata,
-    sessionId?: SessionId,
-  ): SessionId {
+  createSession(url: string, metadata: SessionMetadata, sessionId?: SessionId): SessionId {
     const session = createErrorSession(url, metadata, sessionId);
     this.sessions.set(session.id, session);
     return session.id;
@@ -254,10 +250,7 @@ export class SessionManager {
     return session;
   }
 
-  updateSession(
-    id: SessionId,
-    updates: Partial<ErrorSession>,
-  ): ErrorSession | undefined {
+  updateSession(id: SessionId, updates: Partial<ErrorSession>): ErrorSession | undefined {
     const current = this.getSession(id);
     if (!current) return undefined;
 
