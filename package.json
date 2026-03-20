@@ -37,19 +37,19 @@
     "prepare": "npm run build"
   },
   "dependencies": {
-    "@logtape/logtape": "^1.2.2",
-    "@modelcontextprotocol/sdk": "^1.24.3",
-    "playwright": "^1.57.0",
-    "zod": "^4.1.13"
+    "@logtape/logtape": "^2.0.4",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "playwright": "^1.58.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^24.10.2",
-    "@typescript-eslint/eslint-plugin": "^8.49.0",
-    "@typescript-eslint/parser": "^8.49.0",
-    "eslint": "^9.39.1",
-    "prettier": "^3.7.4",
+    "@types/node": "^25.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^10.0.3",
+    "prettier": "^3.8.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.15"
+    "vitest": "^4.1.0"
   },
   "engines": {
     "node": ">=18.0.0"
