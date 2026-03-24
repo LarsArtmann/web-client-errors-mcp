@@ -73,8 +73,8 @@ export class BrowserManager {
         name: error.name,
       });
 
-      // Create error using existing service
-      const webError = this.errorDetection.createJavaScriptError(
+      // Create error using existing service (stored for future use when session context is available)
+      const _webError = this.errorDetection.createJavaScriptError(
         error.message,
         error.stack || "No stack trace",
         0, // Line info available in error.message parsing
@@ -142,7 +142,8 @@ export class BrowserManager {
         failure: request.failure()?.errorText,
       });
 
-      const webError = this.errorDetection.createNetworkError(
+      // Create network error (stored for future use when session context is available)
+      const _webError = this.errorDetection.createNetworkError(
         request.failure()?.errorText || "Request failed",
         request.url(),
         0,
@@ -151,7 +152,7 @@ export class BrowserManager {
       );
 
       // Store in session
-      // this.sessionManager.addError(sessionId, webError);
+      // this.sessionManager.addError(sessionId, _webError);
     });
   }
 

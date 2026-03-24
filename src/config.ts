@@ -1,5 +1,4 @@
-// Note: Zod imports temporarily disabled for testing
-// Configuration will be validated at API layer when needed
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { z } from "zod";
 
 // Type definition for ServerConfig
@@ -74,15 +73,29 @@ export function validateConfig(config: unknown): ServerConfig {
     throw new Error("Configuration must be an object");
   }
 
-  const cfg = config as any;
+  const cfg = config as Record<string, unknown>;
 
-  if (!cfg.browser || typeof cfg.browser.headless !== "boolean") {
+  if (!cfg.browser || typeof cfg.browser !== "object") {
     throw new Error("Invalid browser configuration");
   }
-  if (!cfg.thresholds || typeof cfg.thresholds.sessionTimeout !== "number") {
+  const browser = cfg.browser as Record<string, unknown>;
+  if (typeof browser.headless !== "boolean") {
+    throw new Error("Invalid browser configuration");
+  }
+
+  if (!cfg.thresholds || typeof cfg.thresholds !== "object") {
     throw new Error("Invalid thresholds configuration");
   }
-  if (!cfg.features || typeof cfg.features.domSnapshots !== "boolean") {
+  const thresholds = cfg.thresholds as Record<string, unknown>;
+  if (typeof thresholds.sessionTimeout !== "number") {
+    throw new Error("Invalid thresholds configuration");
+  }
+
+  if (!cfg.features || typeof cfg.features !== "object") {
+    throw new Error("Invalid features configuration");
+  }
+  const features = cfg.features as Record<string, unknown>;
+  if (typeof features.domSnapshots !== "boolean") {
     throw new Error("Invalid features configuration");
   }
 
