@@ -38,14 +38,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name } = request.params;
   switch (name) {
-    case 'detect_errors':
+    case "detect_errors":
       return await handleDetectErrors(request);
-    case 'analyze_error_session':
+    case "analyze_error_session":
       return await handleAnalyzeErrorSession(request);
-    case 'get_error_details':
+    case "get_error_details":
       return await handleGetErrorDetails(request);
     default:
-      return { content: [{ type: 'text', text: JSON.stringify({ error: 'Unknown tool' }) }] };
+      return { content: [{ type: "text", text: JSON.stringify({ error: "Unknown tool" }) }] };
   }
 });
 ```

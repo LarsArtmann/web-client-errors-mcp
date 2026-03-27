@@ -62,17 +62,20 @@ Based on our comprehensive improvement plan, here are the critical GitHub issues
 
 ```markdown
 ## Current Status
+
 - Build: ✅ PASSED
 - Tests: ✅ PASSED
 - Lint: ⚠️ 13 warnings (mostly intentional `any` types for MCP flexibility)
 
 ## Required Changes
+
 - [ ] Add ESLint disable comments for intentional MCP protocol any types
 - [ ] Update .eslintrc.js to allow necessary any types
 - [ ] Review and fix any non-intentional type issues
 - [ ] Achieve clean lint score for production deployment
 
 ## Impact
+
 - High: Production deployment readiness
 - Medium: Code quality and maintainability
 - Low: Developer experience improvement
@@ -91,12 +94,15 @@ Based on our comprehensive improvement plan, here are the critical GitHub issues
 
 ```markdown
 ## Current State
+
 We have 6 basic error patterns covering common JavaScript errors.
 
 ## Enhancement Request
+
 Add patterns for modern web frameworks and technologies:
 
 ### React Patterns
+
 - useState hook errors
 - useEffect dependency array issues
 - Component lifecycle errors
@@ -104,30 +110,35 @@ Add patterns for modern web frameworks and technologies:
 - State management errors
 
 ### Vue Patterns
+
 - Vue 3 Composition API errors
 - Reactivity system issues
 - Component prop validation errors
 - Vue Router navigation errors
 
 ### Angular Patterns
+
 - Dependency injection errors
 - RxJS observable errors
 - Template binding errors
 - Service worker errors
 
 ### TypeScript Patterns
+
 - Type inference errors
 - Generic constraint violations
 - Module resolution errors
 - Declaration file issues
 
 ### Web3/Blockchain Patterns
+
 - MetaMask connection errors
 - Smart contract interaction failures
 - Web3 provider errors
 - Gas estimation issues
 
 ## Testing Requirements
+
 - [ ] Test patterns with real-world error examples
 - [ ] Verify suggestion quality and accuracy
 - [ ] Add unit tests for new pattern matching
@@ -146,12 +157,15 @@ Add patterns for modern web frameworks and technologies:
 
 ````markdown
 ## Problem Statement
+
 Current MCP protocol is request/response based, limiting real-time error detection capabilities.
 
 ## Proposed Solution
+
 Implement streaming via MCP resources with server-sent events simulation:
 
 ### Implementation Plan
+
 1. **New Resource Endpoint**: `errors://streaming`
 2. **Polling-based Streaming**: Intelligent MCP polling for real-time updates
 3. **Error Buffer**: In-memory queue for streaming error data
@@ -159,12 +173,14 @@ Implement streaming via MCP resources with server-sent events simulation:
 5. **Connection Management**: Handle multiple concurrent streaming clients
 
 ### Technical Details
+
 ```typescript
 interface StreamingConfig {
   interval: 1000 | 5000 | 10000; // milliseconds
   bufferSize: number; // max errors in buffer
   sessionId?: string; // optional session filtering
 }
+```
 ````
 
 ### Benefits
@@ -340,12 +356,15 @@ Track error patterns across multiple sessions for advanced analytics:
 
 ```markdown
 ## Current Limitation
+
 Error classification limited to regex pattern matching.
 
 ## Enhancement Request
+
 Add machine learning capabilities:
 
 ### Features
+
 - Error similarity scoring algorithm
 - Severity prediction based on context
 - Automatic categorization beyond regex
@@ -353,6 +372,7 @@ Add machine learning capabilities:
 - Learning from user feedback
 
 ### Implementation Approach
+
 1. Vector similarity for error messages
 2. Context-based classification (URL, browser, stack trace)
 3. Severity prediction model
@@ -373,12 +393,15 @@ Add machine learning capabilities:
 
 ```markdown
 ## Current State
+
 Basic redaction with 10 sensitive field patterns.
 
 ## Enhancement Request
+
 Advanced privacy protection:
 
 ### New PII Patterns
+
 - Email addresses
 - Phone numbers
 - Credit card numbers
@@ -388,6 +411,7 @@ Advanced privacy protection:
 - Personal information
 
 ### Features
+
 - Context-aware redaction
 - Custom redaction patterns
 - Privacy-focused operation mode
@@ -410,9 +434,11 @@ Advanced privacy protection:
 
 ```markdown
 ## Current State
+
 Sessions stored in memory only.
 
 ## Enhancement Request
+
 - Disk/database session storage
 - Session search and filtering
 - JSON/CSV export functionality
@@ -433,9 +459,11 @@ Sessions stored in memory only.
 
 ```markdown
 ## Current State
+
 Chromium-only browser automation.
 
 ## Enhancement Request
+
 - Firefox support via Playwright
 - WebKit (Safari) support
 - Cross-browser error comparison

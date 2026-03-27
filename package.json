@@ -18,12 +18,12 @@
   "bugs": {
     "url": "https://github.com/LarsArtmann/web-client-errors-mcp/issues"
   },
+  "license": "MIT",
+  "author": "Lars Artmann <lars@artmann.ai>",
   "repository": {
     "type": "git",
     "url": "https://github.com/LarsArtmann/web-client-errors-mcp.git"
   },
-  "author": "Lars Artmann <lars@artmann.ai>",
-  "license": "MIT",
   "type": "module",
   "main": "dist/core/mcp-server.js",
   "scripts": {

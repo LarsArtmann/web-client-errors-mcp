@@ -30,16 +30,19 @@ web-client-errors-mcp/
 ## Split Assessment
 
 ### Coupling Analysis
+
 - **Single purpose**: Detect web client errors
 - **Tight integration**: All components support error detection
 - **MCP interface**: Single server with focused tools
 
 ### Natural Boundaries
+
 - **None identified**: Project is appropriately scoped
 
 ### Split Recommendation
 
 **NOT RECOMMENDED** because:
+
 1. **UNIX philosophy**: Does one thing well
 2. **Small size**: ~30 files is appropriate
 3. **Cohesive purpose**: All code serves error detection

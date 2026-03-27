@@ -78,14 +78,14 @@ Detects client-side errors on any website using Playwright browser automation.
 
 **Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | Yes | Website URL to scan |
-| `waitTime` | number | No | Milliseconds to wait for errors (default: 5000) |
-| `captureScreenshot` | boolean | No | Take screenshot (default: true) |
-| `includeNetworkErrors` | boolean | No | Include network errors (default: true) |
-| `includeConsoleWarnings` | boolean | No | Include console warnings (default: true) |
-| `interactWithPage` | boolean | No | Scroll/click to trigger lazy errors (default: false) |
+| Parameter                | Type    | Required | Description                                          |
+| ------------------------ | ------- | -------- | ---------------------------------------------------- |
+| `url`                    | string  | Yes      | Website URL to scan                                  |
+| `waitTime`               | number  | No       | Milliseconds to wait for errors (default: 5000)      |
+| `captureScreenshot`      | boolean | No       | Take screenshot (default: true)                      |
+| `includeNetworkErrors`   | boolean | No       | Include network errors (default: true)               |
+| `includeConsoleWarnings` | boolean | No       | Include console warnings (default: true)             |
+| `interactWithPage`       | boolean | No       | Scroll/click to trigger lazy errors (default: false) |
 
 **Example**: `"detect errors on https://mysite.com with 10 second wait"`
 
@@ -95,11 +95,11 @@ Analyzes collected errors to find patterns and provide fix suggestions.
 
 **Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `sessionId` | string | Yes | ID from error detection |
-| `includeSuggestions` | boolean | No | Include AI fix suggestions (default: true) |
-| `severity` | string | No | Filter: error/warning/info/all (default: all) |
+| Parameter            | Type    | Required | Description                                   |
+| -------------------- | ------- | -------- | --------------------------------------------- |
+| `sessionId`          | string  | Yes      | ID from error detection                       |
+| `includeSuggestions` | boolean | No       | Include AI fix suggestions (default: true)    |
+| `severity`           | string  | No       | Filter: error/warning/info/all (default: all) |
 
 **Example**: `"analyze error session abc-123"`
 
@@ -109,11 +109,11 @@ Gets detailed information about a specific error including stack trace and conte
 
 **Parameters**:
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `errorId` | string | Yes | Error message or ID to investigate |
-| `includeStackTrace` | boolean | No | Include full stack trace (default: true) |
-| `includeContext` | boolean | No | Include error context and analysis (default: true) |
+| Parameter           | Type    | Required | Description                                        |
+| ------------------- | ------- | -------- | -------------------------------------------------- |
+| `errorId`           | string  | Yes      | Error message or ID to investigate                 |
+| `includeStackTrace` | boolean | No       | Include full stack trace (default: true)           |
+| `includeContext`    | boolean | No       | Include error context and analysis (default: true) |
 
 **Example**: `"get details for TypeError undefined property"`
 

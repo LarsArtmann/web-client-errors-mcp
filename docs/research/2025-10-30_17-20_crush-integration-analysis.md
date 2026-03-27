@@ -97,7 +97,7 @@ class WebErrorLSPServer implements ServerCapabilities {
 
 ```typescript
 // Already implements error detection pattern:
-page.on('pageerror', (error) => {
+page.on("pageerror", (error) => {
   jsErrors.push(error.message);
 });
 ```
@@ -130,37 +130,37 @@ page.on('pageerror', (error) => {
 **Phase 1: Core MCP Server**
 
 ```typescript
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 const server = new Server(
   {
-    name: 'web-client-errors',
-    version: '1.0.0',
+    name: "web-client-errors",
+    version: "1.0.0",
   },
   {
     capabilities: {
       tools: {},
       resources: {},
     },
-  }
+  },
 );
 
 // Tool for error detection
-server.setRequestHandler('tools/list', async () => ({
+server.setRequestHandler("tools/list", async () => ({
   tools: [
     {
-      name: 'detect_errors',
-      description: 'Detect client-side errors on a website',
+      name: "detect_errors",
+      description: "Detect client-side errors on a website",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
-          url: { type: 'string' },
-          waitTime: { type: 'number' }
-        }
-      }
-    }
-  ]
+          url: { type: "string" },
+          waitTime: { type: "number" },
+        },
+      },
+    },
+  ],
 }));
 ```
 
@@ -168,10 +168,10 @@ server.setRequestHandler('tools/list', async () => ({
 
 ```typescript
 // Use Playwright patterns from KeyCountdown
-import { chromium } from 'playwright';
+import { chromium } from "playwright";
 
-server.setRequestHandler('tools/call', async (request) => {
-  if (request.params.name === 'detect_errors') {
+server.setRequestHandler("tools/call", async (request) => {
+  if (request.params.name === "detect_errors") {
     const { url, waitTime } = request.params.arguments;
 
     const browser = await chromium.launch();
@@ -179,11 +179,11 @@ server.setRequestHandler('tools/call', async (request) => {
 
     // Error collection (based on KeyCountdown pattern)
     const errors: string[] = [];
-    page.on('pageerror', (error) => {
+    page.on("pageerror", (error) => {
       errors.push(error.message);
     });
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
         errors.push(msg.text());
       }
     });
@@ -194,15 +194,21 @@ server.setRequestHandler('tools/call', async (request) => {
     await browser.close();
 
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          url,
-          timestamp: new Date().toISOString(),
-          errors: errors,
-          errorCount: errors.length
-        }, null, 2)
-      }]
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              url,
+              timestamp: new Date().toISOString(),
+              errors: errors,
+              errorCount: errors.length,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
     };
   }
 });

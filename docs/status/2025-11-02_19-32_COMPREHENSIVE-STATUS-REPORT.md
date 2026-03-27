@@ -175,9 +175,15 @@
 
 ```typescript
 // Already excellent - just expand these patterns
-interface ErrorDetectionSession { /* ✅ World-class */ }
-interface ClientError { /* ✅ Comprehensive */ }
-interface PerformanceMetrics { /* ✅ Good foundation */ }
+interface ErrorDetectionSession {
+  /* ✅ World-class */
+}
+interface ClientError {
+  /* ✅ Comprehensive */
+}
+interface PerformanceMetrics {
+  /* ✅ Good foundation */
+}
 ```
 
 ### **PROPOSED ENHANCEMENTS**
@@ -190,7 +196,7 @@ type ResourceUrl = string & { readonly __brand: "ResourceUrl" };
 
 // Add these advanced interfaces
 interface StreamingSession extends ErrorDetectionSession {
-  readonly streamType: 'polling' | 'real-time';
+  readonly streamType: "polling" | "real-time";
   readonly buffer: CircularBuffer<ClientError>;
   readonly subscribers: Set<StreamSubscriber>;
 }
