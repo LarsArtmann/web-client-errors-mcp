@@ -13,18 +13,6 @@ export interface CallToolRequest {
   };
 }
 
-export interface MCPRequest {
-  method: string;
-  params: {
-    [key: string]: unknown;
-    arguments?: Record<string, unknown>;
-    _meta?: {
-      progressToken?: string | number;
-      [key: string]: unknown;
-    };
-  };
-}
-
 export interface MCPResponse {
   content: Array<{
     type: string;
@@ -34,19 +22,6 @@ export interface MCPResponse {
     [key: string]: unknown;
   };
 }
-
-export interface MCPResourceResult {
-  contents: Array<{
-    uri: string;
-    mimeType: string;
-    text: string;
-  }>;
-  _meta?: {
-    [key: string]: unknown;
-  };
-}
-
-export type MCPToolResult = MCPResponse;
 
 // Logging Types (compatible with LogTape)
 export interface LogContext {
@@ -62,82 +37,6 @@ export interface Logger {
   warn(message: string, context?: LogContext): void; // Alias for warning
   error(message: string, context?: LogContext): void;
   fatal(message: string, context?: LogContext): void;
-}
-
-// Browser and error detection types
-export interface BrowserTiming {
-  responseEnd: number;
-  [key: string]: number;
-}
-
-export interface PerformanceEntry {
-  name: string;
-  startTime?: number;
-  domContentLoadedEventEnd?: number;
-  domContentLoadedEventStart?: number;
-  loadEventEnd?: number;
-  loadEventStart?: number;
-}
-
-export interface PerformanceMetrics {
-  domContentLoaded: number;
-  loadComplete: number;
-  firstContentfulPaint?: number;
-}
-
-// Error detection types
-export interface ErrorContext {
-  userAgent: string;
-  viewport: { width: number; height: number };
-  url: string;
-  domSnapshot?: string;
-  networkConditions?: {
-    online: boolean;
-    connectionType?: string;
-    effectiveType?: string;
-  };
-}
-
-// Zod schema types for validation
-export interface ToolHandler {
-  (request: CallToolRequest): Promise<MCPResponse>;
-}
-
-export interface ErrorHandler {
-  (error: Error | unknown, context?: LogContext): void;
-}
-
-// Enhanced configuration types
-export interface ServerConfig {
-  browser: {
-    headless: boolean;
-    viewport: { width: number; height: number };
-    userAgent: string;
-    args: string[];
-  };
-  thresholds: {
-    slowResponse: number;
-    sessionTimeout: number;
-    maxErrors: number;
-  };
-  logging: {
-    level: LogLevel;
-    structured: boolean;
-    redactSensitiveData: boolean;
-  };
-  features: {
-    domSnapshots: boolean;
-    performanceMetrics: boolean;
-    errorDeduplication: boolean;
-    sentryIntegration: boolean;
-    realTimeStreaming?: boolean;
-    crossSessionAnalysis?: boolean;
-  };
-  sentry?: {
-    dsn: string;
-    environment: string;
-    tracesSampleRate: number;
-  };
 }
 
 // Type guards and validators

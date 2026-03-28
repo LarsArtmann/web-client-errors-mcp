@@ -1,4 +1,9 @@
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "playwright";
 import { getAppLogger } from "../logger.js";
 import { getConfig } from "../config.js";
 import { SessionManager } from "../repositories/session-store.js";
@@ -53,7 +58,10 @@ export class BrowserManager {
     });
   }
 
-  async createPageWithContext(sessionId: SessionId, context?: BrowserContext): Promise<Page> {
+  async createPageWithContext(
+    sessionId: SessionId,
+    context?: BrowserContext,
+  ): Promise<Page> {
     this.setSession(sessionId);
     const ctx = context || (await this.createContext());
     const page = await ctx.newPage();
@@ -73,8 +81,8 @@ export class BrowserManager {
         name: error.name,
       });
 
-      // Create error using existing service (stored for future use when session context is available)
-      const _webError = this.errorDetection.createJavaScriptError(
+      // Create error using existing service (would need session context to store)
+      this.errorDetection.createJavaScriptError(
         error.message,
         error.stack || "No stack trace",
         0, // Line info available in error.message parsing
@@ -142,8 +150,8 @@ export class BrowserManager {
         failure: request.failure()?.errorText,
       });
 
-      // Create network error (stored for future use when session context is available)
-      const _webError = this.errorDetection.createNetworkError(
+      // Create network error (would need session context to store)
+      this.errorDetection.createNetworkError(
         request.failure()?.errorText || "Request failed",
         request.url(),
         0,

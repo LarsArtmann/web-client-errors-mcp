@@ -1,23 +1,17 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import {
-  type WebError,
-  type SessionId,
-  type SessionMetadata,
-  createJavaScriptError,
-  createNetworkError,
-} from "../types/domain.js";
+import { type SessionId } from "../types/domain.js";
 import { ErrorDetectionService } from "../services/error-detection.js";
 import { SessionManager } from "../repositories/session-store.js";
 
 describe("BDD: Web Client Error Detection", () => {
   let errorDetectionService: ErrorDetectionService;
   let sessionManager: SessionManager;
-  let testSessionId: SessionId;
+  let _testSessionId: SessionId;
 
   beforeEach(() => {
     errorDetectionService = new ErrorDetectionService();
     sessionManager = new SessionManager(1000); // 1 second TTL for testing
-    testSessionId = sessionManager.createSession("https://example.com", {
+    _testSessionId = sessionManager.createSession("https://example.com", {
       userAgent: "Test User Agent",
       viewport: { width: 1920, height: 1080 },
       platform: "test",
@@ -54,7 +48,9 @@ describe("BDD: Web Client Error Detection", () => {
         expect(jsError.severity).toBe("high");
         expect(jsError.line).toBe(10);
         expect(jsError.column).toBe(5);
-        expect(jsError.message).toContain("TypeError: Cannot read properties of undefined");
+        expect(jsError.message).toContain(
+          "TypeError: Cannot read properties of undefined",
+        );
       });
 
       it("Then suggestions should help developers fix the issue", () => {
@@ -69,9 +65,14 @@ describe("BDD: Web Client Error Detection", () => {
           ),
         ];
 
-        const suggestions = errorDetectionService.generateErrorSuggestions(errors);
-        expect(suggestions).toContain("Check if variable is properly initialized before use");
-        expect(suggestions).toContain("Use optional chaining (?.) for safer property access");
+        const suggestions =
+          errorDetectionService.generateErrorSuggestions(errors);
+        expect(suggestions).toContain(
+          "Check if variable is properly initialized before use",
+        );
+        expect(suggestions).toContain(
+          "Use optional chaining (?.) for safer property access",
+        );
       });
     });
 
@@ -218,7 +219,9 @@ describe("BDD: Web Client Error Detection", () => {
       const patterns = errorDetectionService.getErrorPatterns();
       expect(patterns).toHaveLength(6);
 
-      const typeErrorPattern = patterns.find((p) => p.name === "TypeError: Undefined Property");
+      const typeErrorPattern = patterns.find(
+        (p) => p.name === "TypeError: Undefined Property",
+      );
       expect(typeErrorPattern).toBeDefined();
       expect(typeErrorPattern?.severity).toBe("high");
       expect(typeErrorPattern?.category).toBe("Property Access");
@@ -229,12 +232,16 @@ describe("BDD: Web Client Error Detection", () => {
         .getErrorPatterns()
         .find((p) => p.name === "TypeError: Undefined Property");
 
-      expect(typeErrorPattern?.regex.test("TypeError: Cannot read properties of undefined")).toBe(
-        true,
-      );
-      expect(typeErrorPattern?.regex.test("TypeError: Cannot read property foo of null")).toBe(
-        true,
-      );
+      expect(
+        typeErrorPattern?.regex.test(
+          "TypeError: Cannot read properties of undefined",
+        ),
+      ).toBe(true);
+      expect(
+        typeErrorPattern?.regex.test(
+          "TypeError: Cannot read property foo of null",
+        ),
+      ).toBe(true);
     });
   });
 
@@ -255,7 +262,7 @@ describe("BDD: Web Client Error Detection", () => {
     it("Then store should maintain statistics", () => {
       // Create multiple errors
       for (let i = 0; i < 5; i++) {
-        const error = errorDetectionService.createJavaScriptError(
+        errorDetectionService.createJavaScriptError(
           `Test error ${i}`,
           `Test stack ${i}`,
           i,

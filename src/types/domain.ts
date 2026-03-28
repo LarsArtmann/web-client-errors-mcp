@@ -192,18 +192,17 @@ export const createNetworkError = (
   responseTime: number,
   statusCode: number = 0, // Default to 0 if no status code
   severity: ErrorSeverity = "medium",
-): NetworkError =>
-  ({
-    type: "network",
-    id: createErrorId(),
-    message: toNonEmptyString(message),
-    timestamp: toISO8601(),
-    severity,
-    frequency: 0, // Always present!
-    url,
-    statusCode: Math.max(0, statusCode), // Ensure non-negative
-    responseTime: Math.max(0, responseTime),
-  });
+): NetworkError => ({
+  type: "network",
+  id: createErrorId(),
+  message: toNonEmptyString(message),
+  timestamp: toISO8601(),
+  severity,
+  frequency: 0, // Always present!
+  url,
+  statusCode: Math.max(0, statusCode), // Ensure non-negative
+  responseTime: Math.max(0, responseTime),
+});
 
 export const createErrorSession = (
   url: string,
@@ -230,7 +229,11 @@ export class SessionManager {
     this.startCleanup();
   }
 
-  createSession(url: string, metadata: SessionMetadata, sessionId?: SessionId): SessionId {
+  createSession(
+    url: string,
+    metadata: SessionMetadata,
+    sessionId?: SessionId,
+  ): SessionId {
     const session = createErrorSession(url, metadata, sessionId);
     this.sessions.set(session.id, session);
     return session.id;
@@ -250,7 +253,10 @@ export class SessionManager {
     return session;
   }
 
-  updateSession(id: SessionId, updates: Partial<ErrorSession>): ErrorSession | undefined {
+  updateSession(
+    id: SessionId,
+    updates: Partial<ErrorSession>,
+  ): ErrorSession | undefined {
     const current = this.getSession(id);
     if (!current) return undefined;
 
