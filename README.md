@@ -54,8 +54,8 @@ Add to your CRUSH `.mcp.json`:
   "mcp": {
     "web-client-errors": {
       "type": "stdio",
-      "command": "/Users/larsartmann/.bun/bin/bun",
-      "args": ["run", "/path/to/web-client-errors-mcp/dist/index.js"],
+      "command": "bun",
+      "args": ["/path/to/web-client-errors-mcp/dist/core/mcp-server.js"],
       "disabled": false
     }
   }
@@ -120,27 +120,65 @@ Gets detailed information about a specific error including stack trace and conte
 ## 🔧 Development
 
 ```bash
+bun install       # Install dependencies
 bun run build     # Compile TypeScript
-bun run dev      # Watch and rebuild
+bun run dev       # Watch and rebuild
 bun run typecheck # Type checking
-bun run test     # Run tests
-bun run lint     # Lint code
+bun test          # Run tests
+bun run lint      # Lint code
+
+# Or use just
+just build        # Build project
+just test         # Run tests
+just check        # Full quality check
+just ci           # CI pipeline
 ```
+
+## 📁 Project Structure
+
+```
+src/
+├── core/
+│   └── mcp-server.ts      # MCP server implementation
+├── services/
+│   ├── browser-manager.ts # Playwright browser automation
+│   └── error-detection.ts # Error classification & analysis
+├── repositories/
+│   └── session-store.ts   # Session & error storage
+├── types/
+│   └── domain.ts          # Domain types (branded, discriminated)
+├── config.ts              # Configuration management
+└── logger.ts              # Structured logging setup
+```
+
+## 🔌 Resources
+
+The MCP server exposes these resources for AI agents:
+
+- `errors://recent` — Most recent errors from all sessions
+- `errors://stats` — Aggregated error statistics
 
 ## 📖 Architecture
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  AI Coding      │────▶│  MCP Server      │────▶│  Playwright     │
-│  Agent (CRUSH)  │     │  (This Project)   │     │  Browser        │
+│  Agent (CRUSH)  │     │  (This Project)  │     │  Browser        │
 └─────────────────┘     └──────────────────┘     └─────────────────┘
-                              │
-                              ▼
-                        ┌──────────────────┐
-                        │  Session Store   │
-                        │  Error Analysis  │
-                        └──────────────────┘
+                               │
+                               ▼
+                         ┌──────────────────┐
+                         │  Session Store   │
+                         │  Error Analysis  │
+                         └──────────────────┘
 ```
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+| [docs/BRANCHING-FLOW.md](docs/BRANCHING-FLOW.md) | Branching strategy |
 
 ## 📄 License
 

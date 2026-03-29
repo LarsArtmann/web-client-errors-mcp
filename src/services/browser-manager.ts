@@ -81,18 +81,20 @@ export class BrowserManager {
         name: error.name,
       });
 
-      // Create error using existing service (would need session context to store)
-      this.errorDetection.createJavaScriptError(
+      // Create error and store in session
+      const webError = this.errorDetection.createJavaScriptError(
         error.message,
         error.stack || "No stack trace",
-        0, // Line info available in error.message parsing
-        0, // Column info available in error.message parsing
+        0,
+        0,
         page.url(),
-        "high", // JS errors are high severity by default
+        "high",
       );
 
-      // Store in session (would need session context)
-      // this.sessionManager.addError(sessionId, webError);
+      // Store in session
+      if (this.currentSessionId) {
+        this.sessionManager.addError(this.currentSessionId, webError);
+      }
     });
 
     // Console error detection
@@ -150,8 +152,8 @@ export class BrowserManager {
         failure: request.failure()?.errorText,
       });
 
-      // Create network error (would need session context to store)
-      this.errorDetection.createNetworkError(
+      // Create network error and store in session
+      const webError = this.errorDetection.createNetworkError(
         request.failure()?.errorText || "Request failed",
         request.url(),
         0,
@@ -160,7 +162,9 @@ export class BrowserManager {
       );
 
       // Store in session
-      // this.sessionManager.addError(sessionId, _webError);
+      if (this.currentSessionId) {
+        this.sessionManager.addError(this.currentSessionId, webError);
+      }
     });
   }
 

@@ -29,7 +29,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "bun dist/index.js",
+    "start": "bun dist/core/mcp-server.js",
     "test": "vitest",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
