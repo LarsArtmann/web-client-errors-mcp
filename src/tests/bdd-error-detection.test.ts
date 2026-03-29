@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach } from "vitest";
 import { type SessionId } from "../types/domain.js";
 import { ErrorDetectionService } from "../services/error-detection.js";
 import { SessionManager } from "../repositories/session-store.js";
