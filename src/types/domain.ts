@@ -162,6 +162,21 @@ export interface ErrorSession {
 }
 
 // 5. TYPE-CREATION HELPERS - ENSURE VALIDITY
+function createBaseError<T extends "javascript" | "network">(
+  type: T,
+  message: string,
+  severity: ErrorSeverity,
+) {
+  return {
+    type,
+    id: createErrorId(),
+    message: toNonEmptyString(message),
+    timestamp: toISO8601(),
+    severity,
+    frequency: 0,
+  };
+}
+
 export const createJavaScriptError = (
   message: string,
   stack: string,
@@ -171,12 +186,7 @@ export const createJavaScriptError = (
   severity: ErrorSeverity = "medium",
 ): JavaScriptError => {
   const error = {
-    type: "javascript" as const,
-    id: createErrorId(),
-    message: toNonEmptyString(message),
-    timestamp: toISO8601(),
-    severity,
-    frequency: 0, // Always present!
+    ...createBaseError("javascript", message, severity),
     stack: toNonEmptyString(stack),
     line: Math.max(0, line),
     column: Math.max(0, column),
@@ -190,17 +200,12 @@ export const createNetworkError = (
   message: string,
   url: string,
   responseTime: number,
-  statusCode: number = 0, // Default to 0 if no status code
+  statusCode: number = 0,
   severity: ErrorSeverity = "medium",
 ): NetworkError => ({
-  type: "network",
-  id: createErrorId(),
-  message: toNonEmptyString(message),
-  timestamp: toISO8601(),
-  severity,
-  frequency: 0, // Always present!
+  ...createBaseError("network", message, severity),
   url,
-  statusCode: Math.max(0, statusCode), // Ensure non-negative
+  statusCode: Math.max(0, statusCode),
   responseTime: Math.max(0, responseTime),
 });
 

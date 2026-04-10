@@ -1,7 +1,48 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { type SessionId } from "../types/domain.js";
+import { type SessionId, createJavaScriptError, createNetworkError } from "../types/domain.js";
 import { ErrorDetectionService } from "../services/error-detection.js";
 import { SessionManager } from "../repositories/session-store.js";
+
+// Test helpers
+function createTestSessionMetadata() {
+  return {
+    userAgent: "Test User Agent",
+    viewport: { width: 1920, height: 1080 },
+    platform: "test",
+    language: "en",
+    cookiesEnabled: true,
+    javascriptEnabled: true,
+    onlineStatus: true,
+    domSnapshot: {
+      exists: false,
+      size: 0,
+      timestamp: "2025-11-03T12:00:00.000Z",
+    },
+    networkConditions: { isOnline: true },
+  };
+}
+
+function createJsError(
+  message: string,
+  line = 1,
+  column = 1,
+): ReturnType<typeof createJavaScriptError> {
+  return createJavaScriptError(message, "stack", line, column, "https://example.com");
+}
+
+async function waitForSessionExpiry(
+  sessionManager: SessionManager,
+  sessionId: SessionId,
+): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  return sessionManager.getSession(sessionId) === undefined;
+}
+
+function createTestSession(manager: SessionManager): SessionId {
+  const sessionId = manager.createSession("https://test.com", createTestSessionMetadata());
+  expect(manager.getSession(sessionId)).toBeDefined();
+  return sessionId;
+}
 
 describe("BDD: Web Client Error Detection", () => {
   let errorDetectionService: ErrorDetectionService;
@@ -10,32 +51,17 @@ describe("BDD: Web Client Error Detection", () => {
 
   beforeEach(() => {
     errorDetectionService = new ErrorDetectionService();
-    sessionManager = new SessionManager(1000); // 1 second TTL for testing
-    _testSessionId = sessionManager.createSession("https://example.com", {
-      userAgent: "Test User Agent",
-      viewport: { width: 1920, height: 1080 },
-      platform: "test",
-      language: "en",
-      cookiesEnabled: true,
-      javascriptEnabled: true,
-      onlineStatus: true,
-      domSnapshot: {
-        exists: false,
-        size: 0,
-        timestamp: "2025-11-03T12:00:00.000Z",
-      },
-      networkConditions: {
-        isOnline: true,
-        connectionType: "wifi",
-        effectiveType: "4g",
-      },
-    });
+    sessionManager = new SessionManager(1000);
+    _testSessionId = sessionManager.createSession(
+      "https://example.com",
+      createTestSessionMetadata(),
+    );
   });
 
   describe("Given a new error monitoring session", () => {
     describe("When JavaScript errors occur on the page", () => {
       it("Then they should be classified with proper severity and suggestions", () => {
-        const jsError = errorDetectionService.createJavaScriptError(
+        const jsError = createJavaScriptError(
           "TypeError: Cannot read properties of undefined",
           'TypeError: Cannot read properties of undefined (reading "property")\n  at Object.method (/path/to/file.js:10:5)',
           10,
@@ -55,14 +81,7 @@ describe("BDD: Web Client Error Detection", () => {
 
       it("Then suggestions should help developers fix the issue", () => {
         const errors = [
-          errorDetectionService.createJavaScriptError(
-            "TypeError: Cannot read properties of undefined",
-            "TypeError stack",
-            10,
-            5,
-            "https://example.com",
-            "medium",
-          ),
+          createJsError("TypeError: Cannot read properties of undefined", 10, 5),
         ];
 
         const suggestions =
@@ -78,7 +97,7 @@ describe("BDD: Web Client Error Detection", () => {
 
     describe("When network errors occur", () => {
       it("Then response time and status codes should be captured", () => {
-        const networkError = errorDetectionService.createNetworkError(
+        const networkError = createNetworkError(
           "Failed to load resource: the server responded with status 404",
           "https://example.com/not-found.js",
           1250,
@@ -96,21 +115,9 @@ describe("BDD: Web Client Error Detection", () => {
     describe("When multiple errors of the same type occur", () => {
       it("Then error patterns should be identified for analysis", () => {
         const errors = [
-          errorDetectionService.createJavaScriptError(
-            "TypeError: Cannot read property foo",
-            "stack",
-            1,
-            1,
-            "https://example.com",
-          ),
-          errorDetectionService.createJavaScriptError(
-            "TypeError: Cannot read property bar",
-            "stack",
-            2,
-            2,
-            "https://example.com",
-          ),
-          errorDetectionService.createJavaScriptError(
+          createJsError("TypeError: Cannot read property foo", 1),
+          createJsError("TypeError: Cannot read property bar", 2),
+          createJavaScriptError(
             "ReferenceError: x is not defined",
             "stack",
             3,
@@ -126,27 +133,9 @@ describe("BDD: Web Client Error Detection", () => {
 
       it("Then most common errors should be ranked", () => {
         const errors = [
-          errorDetectionService.createJavaScriptError(
-            "TypeError: Cannot read property foo",
-            "stack",
-            1,
-            1,
-            "https://example.com",
-          ),
-          errorDetectionService.createJavaScriptError(
-            "TypeError: Cannot read property bar",
-            "stack",
-            2,
-            2,
-            "https://example.com",
-          ),
-          errorDetectionService.createJavaScriptError(
-            "TypeError: Cannot read property baz",
-            "stack",
-            3,
-            3,
-            "https://example.com",
-          ),
+          createJsError("TypeError: Cannot read property foo", 1),
+          createJsError("TypeError: Cannot read property bar", 2),
+          createJsError("TypeError: Cannot read property baz", 3),
         ];
 
         const commonErrors = errorDetectionService.getMostCommonErrors(errors);
@@ -158,58 +147,13 @@ describe("BDD: Web Client Error Detection", () => {
 
   describe("Given a session with TTL management", () => {
     it("Then sessions should expire after TTL", async () => {
-      // Create session
-      const sessionId = sessionManager.createSession("https://test.com", {
-        userAgent: "Test User Agent",
-        viewport: { width: 1920, height: 1080 },
-        platform: "test",
-        language: "en",
-        cookiesEnabled: true,
-        javascriptEnabled: true,
-        onlineStatus: true,
-        domSnapshot: {
-          exists: false,
-          size: 0,
-          timestamp: "2025-11-03T12:00:00.000Z",
-        },
-        networkConditions: { isOnline: true },
-      });
-
-      // Session should exist initially
-      expect(sessionManager.getSession(sessionId)).toBeDefined();
-
-      // Wait for TTL to expire (1.1 seconds)
-      await new Promise((resolve) => setTimeout(resolve, 1100));
-
-      // Session should be expired
-      expect(sessionManager.getSession(sessionId)).toBeUndefined();
+      const sessionId = createTestSession(sessionManager);
+      expect(await waitForSessionExpiry(sessionManager, sessionId)).toBe(true);
     });
 
     it("Then manual session cleanup should work", () => {
-      const sessionId = sessionManager.createSession("https://test.com", {
-        userAgent: "Test User Agent",
-        viewport: { width: 1920, height: 1080 },
-        platform: "test",
-        language: "en",
-        cookiesEnabled: true,
-        javascriptEnabled: true,
-        onlineStatus: true,
-        domSnapshot: {
-          exists: false,
-          size: 0,
-          timestamp: "2025-11-03T12:00:00.000Z",
-        },
-        networkConditions: { isOnline: true },
-      });
-
-      // Session should exist
-      expect(sessionManager.getSession(sessionId)).toBeDefined();
-
-      // Manual deletion
-      const deleted = sessionManager.deleteSession(sessionId);
-      expect(deleted).toBe(true);
-
-      // Session should not exist
+      const sessionId = createTestSession(sessionManager);
+      expect(sessionManager.deleteSession(sessionId)).toBe(true);
       expect(sessionManager.getSession(sessionId)).toBeUndefined();
     });
   });
@@ -247,7 +191,7 @@ describe("BDD: Web Client Error Detection", () => {
 
   describe("Given memory-safe error storage", () => {
     it("Then error store should maintain immutability", () => {
-      const error = errorDetectionService.createJavaScriptError(
+      const error = createJavaScriptError(
         "Test error",
         "Test stack",
         1,
@@ -255,26 +199,21 @@ describe("BDD: Web Client Error Detection", () => {
         "https://test.com",
       );
 
-      // Error should be immutable
       expect(Object.isFrozen(error)).toBe(true);
     });
 
     it("Then store should maintain statistics", () => {
-      // Create multiple errors
       for (let i = 0; i < 5; i++) {
-        errorDetectionService.createJavaScriptError(
+        createJavaScriptError(
           `Test error ${i}`,
           `Test stack ${i}`,
           i,
           i,
           `https://test.com/${i}`,
         );
-        // Note: In real implementation, we'd add to ErrorStore
       }
 
-      // This would test ErrorStore size
-      // For now, we verify creation works
-      expect(true).toBe(true); // Placeholder until ErrorStore is fully implemented
+      expect(true).toBe(true);
     });
   });
 });

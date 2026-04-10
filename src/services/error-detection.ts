@@ -90,6 +90,21 @@ const ERROR_PATTERNS: ErrorPattern[] = [
 export class ErrorDetectionService {
   private readonly logger = getAppLogger("error-detection");
 
+  private createDefaultJsError(
+    message: string,
+    jsError: Partial<JavaScriptError>,
+    severity: ErrorSeverity,
+  ): JavaScriptError {
+    return createJavaScriptError(
+      message,
+      jsError.stack || "No stack trace available",
+      jsError.line || 0,
+      jsError.column || 0,
+      jsError.url || "Unknown URL",
+      severity,
+    );
+  }
+
   classifyError(error: Partial<WebError>): WebError {
     const message = error.message || "";
 
@@ -99,14 +114,7 @@ export class ErrorDetectionService {
         // Create specific error type based on classification
         if (error.type === "javascript") {
           const jsError = error as Partial<JavaScriptError>;
-          return createJavaScriptError(
-            message,
-            jsError.stack || "No stack trace available",
-            jsError.line || 0,
-            jsError.column || 0,
-            jsError.url || "Unknown URL",
-            pattern.severity,
-          );
+          return this.createDefaultJsError(message, jsError, pattern.severity);
         } else if (error.type === "network") {
           const netError = error as Partial<NetworkError>;
           return createNetworkError(
@@ -122,35 +130,7 @@ export class ErrorDetectionService {
 
     // Default classification - create JavaScript error as fallback
     const jsError = error as Partial<JavaScriptError>;
-    return createJavaScriptError(
-      message,
-      jsError.stack || "No stack trace available",
-      jsError.line || 0,
-      jsError.column || 0,
-      jsError.url || "Unknown URL",
-      error.severity || "medium",
-    );
-  }
-
-  createJavaScriptError(
-    message: string,
-    stack: string,
-    line: number,
-    column: number,
-    url: string,
-    severity: ErrorSeverity = "medium",
-  ): WebError {
-    return createJavaScriptError(message, stack, line, column, url, severity);
-  }
-
-  createNetworkError(
-    message: string,
-    url: string,
-    responseTime: number,
-    statusCode?: number,
-    severity: ErrorSeverity = "medium",
-  ): WebError {
-    return createNetworkError(message, url, responseTime, statusCode, severity);
+    return this.createDefaultJsError(message, jsError, error.severity || "medium");
   }
 
   getErrorPatterns(): readonly ErrorPattern[] {

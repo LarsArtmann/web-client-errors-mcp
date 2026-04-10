@@ -23,6 +23,94 @@ import { toNonEmptyString } from "../types/domain.js";
 initializeLogging();
 const logger = getAppLogger("mcp-server");
 
+// Helper function for error responses
+function serializeError(error: unknown, message: string, pretty?: boolean) {
+  return JSON.stringify(
+    {
+      error: message,
+      details: error instanceof Error ? error.message : String(error),
+    },
+    pretty ? null : undefined,
+    pretty ? 2 : undefined,
+  );
+}
+
+function createErrorResponse(
+  error: unknown,
+  message: string,
+): MCPResponse {
+  return {
+    content: [
+      {
+        type: "text",
+        text: serializeError(error, message),
+      },
+    ],
+  };
+}
+
+function createResourceErrorResponse(
+  error: unknown,
+  message: string,
+): { uri: string; mimeType: string; text: string }[] {
+  return [
+    {
+      uri: "",
+      mimeType: "application/json",
+      text: serializeError(error, message, true),
+    },
+  ];
+}
+
+function createInvalidArgsResponse(toolName: string): MCPResponse {
+  return {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          error: `Missing or invalid arguments for ${toolName}`,
+        }),
+      },
+    ],
+  };
+}
+
+function extractErrorSummary(error: WebError) {
+  return {
+    id: error.id,
+    type: error.type,
+    severity: error.severity,
+    message: error.message,
+    timestamp: error.timestamp,
+    frequency: error.frequency,
+  };
+}
+
+function createResourceSuccessResponse(
+  uri: string,
+  data: Record<string, unknown>,
+) {
+  return {
+    contents: [
+      {
+        uri,
+        mimeType: "application/json",
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
+  };
+}
+
+function countBy<T>(items: T[], keyFn: (item: T) => string): Record<string, number> {
+  return items.reduce(
+    (acc, item) => {
+      acc[keyFn(item)] = (acc[keyFn(item)] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+}
+
 // Initialize services
 const sessionManager = new SessionManager();
 const browserManager = new BrowserManager();
@@ -106,17 +194,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       tool: name,
       error: error instanceof Error ? error.message : String(error),
     });
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            error: "Tool execution failed",
-            details: error instanceof Error ? error.message : String(error),
-          }),
-        },
-      ],
-    };
+    return createErrorResponse(error, "Tool execution failed");
   }
 });
 
@@ -124,16 +202,7 @@ async function handleDetectErrors(
   request: CallToolRequest,
 ): Promise<MCPResponse> {
   if (!hasValidArguments(request)) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            error: "Missing or invalid arguments for detect_errors",
-          }),
-        },
-      ],
-    };
+    return createInvalidArgsResponse("detect_errors");
   }
 
   try {
@@ -199,14 +268,7 @@ async function handleDetectErrors(
                 status: "completed",
                 timestamp: new Date().toISOString(),
                 errorsCollected: updatedSession?.errors.length || 0,
-                errors:
-                  updatedSession?.errors.map((error) => ({
-                    id: error.id,
-                    type: error.type,
-                    severity: error.severity,
-                    message: error.message,
-                    timestamp: error.timestamp,
-                  })) || [],
+                errors: (updatedSession?.errors || []).map(extractErrorSummary),
                 configuration: {
                   waitTime: options.waitTime,
                   captureScreenshot: options.captureScreenshot,
@@ -230,17 +292,7 @@ async function handleDetectErrors(
     logger.error("Error detection failed", {
       error: error instanceof Error ? error.message : String(error),
     });
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            error: "Error detection failed",
-            details: error instanceof Error ? error.message : String(error),
-          }),
-        },
-      ],
-    };
+    return createErrorResponse(error, "Error detection failed");
   }
 }
 
@@ -248,16 +300,7 @@ async function handleAnalyzeErrorSession(
   request: CallToolRequest,
 ): Promise<MCPResponse> {
   if (!hasValidArguments(request)) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            error: "Missing or invalid arguments for analyze_error_session",
-          }),
-        },
-      ],
-    };
+    return createInvalidArgsResponse("analyze_error_session");
   }
 
   try {
@@ -327,17 +370,7 @@ async function handleAnalyzeErrorSession(
     logger.error("Session analysis failed", {
       error: error instanceof Error ? error.message : String(error),
     });
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            error: "Session analysis failed",
-            details: error instanceof Error ? error.message : String(error),
-          }),
-        },
-      ],
-    };
+    return createErrorResponse(error, "Session analysis failed");
   }
 }
 
@@ -345,16 +378,7 @@ async function handleGetErrorDetails(
   request: CallToolRequest,
 ): Promise<MCPResponse> {
   if (!hasValidArguments(request)) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            error: "Missing or invalid arguments for get_error_details",
-          }),
-        },
-      ],
-    };
+    return createInvalidArgsResponse("get_error_details");
   }
 
   try {
@@ -422,17 +446,7 @@ async function handleGetErrorDetails(
     logger.error("Error details retrieval failed", {
       error: error instanceof Error ? error.message : String(error),
     });
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            error: "Error details retrieval failed",
-            details: error instanceof Error ? error.message : String(error),
-          }),
-        },
-      ],
-    };
+    return createErrorResponse(error, "Error details retrieval failed");
   }
 }
 
@@ -468,51 +482,19 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
           (a, b) =>
             new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         )
-        .slice(0, 100); // Last 100 errors
+        .slice(0, 100);
 
-      return {
-        contents: [
-          {
-            uri,
-            mimeType: "application/json",
-            text: JSON.stringify(
-              {
-                totalErrors: allErrors.length,
-                errors: allErrors.map((error) => ({
-                  id: error.id,
-                  type: error.type,
-                  severity: error.severity,
-                  message: error.message,
-                  timestamp: error.timestamp,
-                  frequency: error.frequency,
-                })),
-                lastUpdated: new Date().toISOString(),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return createResourceSuccessResponse(uri, {
+        totalErrors: allErrors.length,
+        errors: allErrors.map(extractErrorSummary),
+        lastUpdated: new Date().toISOString(),
+      });
     } catch (error) {
       logger.error("Failed to get recent errors", {
         error: error instanceof Error ? error.message : String(error),
       });
       return {
-        contents: [
-          {
-            uri,
-            mimeType: "application/json",
-            text: JSON.stringify(
-              {
-                error: "Failed to retrieve recent errors",
-                details: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
+        contents: createResourceErrorResponse(error, "Failed to retrieve recent errors").map((r) => ({ ...r, uri })),
       };
     }
   }
@@ -521,70 +503,27 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     try {
       const allSessions = sessionManager.getAllSessions();
       const allErrors = allSessions.flatMap((session) => session.errors);
-
-      // Calculate statistics
-      const errorsByType = allErrors.reduce(
-        (acc, error) => {
-          acc[error.type] = (acc[error.type] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-
-      const errorsBySeverity = allErrors.reduce(
-        (acc, error) => {
-          acc[error.severity] = (acc[error.severity] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-
       const errorPatterns =
         errorDetectionService.analyzeErrorPatterns(allErrors);
 
-      return {
-        contents: [
-          {
-            uri,
-            mimeType: "application/json",
-            text: JSON.stringify(
-              {
-                totalSessions: allSessions.length,
-                totalErrors: allErrors.length,
-                averageErrorsPerSession:
-                  allSessions.length > 0
-                    ? allErrors.length / allSessions.length
-                    : 0,
-                errorsByType,
-                errorsBySeverity,
-                topErrorPatterns: errorPatterns.slice(0, 10),
-                lastUpdated: new Date().toISOString(),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
-      };
+      return createResourceSuccessResponse(uri, {
+        totalSessions: allSessions.length,
+        totalErrors: allErrors.length,
+        averageErrorsPerSession:
+          allSessions.length > 0
+            ? allErrors.length / allSessions.length
+            : 0,
+        errorsByType: countBy(allErrors, (e) => e.type),
+        errorsBySeverity: countBy(allErrors, (e) => e.severity),
+        topErrorPatterns: errorPatterns.slice(0, 10),
+        lastUpdated: new Date().toISOString(),
+      });
     } catch (error) {
       logger.error("Failed to generate statistics", {
         error: error instanceof Error ? error.message : String(error),
       });
       return {
-        contents: [
-          {
-            uri,
-            mimeType: "application/json",
-            text: JSON.stringify(
-              {
-                error: "Failed to generate statistics",
-                details: error instanceof Error ? error.message : String(error),
-              },
-              null,
-              2,
-            ),
-          },
-        ],
+        contents: createResourceErrorResponse(error, "Failed to generate statistics").map((r) => ({ ...r, uri })),
       };
     }
   }

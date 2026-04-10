@@ -7,19 +7,17 @@ import {
 import { getAppLogger } from "../logger.js";
 import { getConfig } from "../config.js";
 import { SessionManager } from "../repositories/session-store.js";
-import { ErrorDetectionService } from "./error-detection.js";
-import type { SessionId } from "../types/domain.js";
+import type { SessionId, WebError } from "../types/domain.js";
+import { createJavaScriptError, createNetworkError } from "../types/domain.js";
 
 export class BrowserManager {
   private browser: Browser | null = null;
   private readonly logger = getAppLogger("browser-manager");
   private sessionManager: SessionManager;
-  private errorDetection: ErrorDetectionService;
   private currentSessionId: SessionId | null = null;
 
   constructor(sessionManager?: SessionManager) {
     this.sessionManager = sessionManager || new SessionManager();
-    this.errorDetection = new ErrorDetectionService();
   }
 
   setSession(sessionId: SessionId): void {
@@ -72,6 +70,12 @@ export class BrowserManager {
     return page;
   }
 
+  private storeError(webError: WebError): void {
+    if (this.currentSessionId) {
+      this.sessionManager.addError(this.currentSessionId, webError);
+    }
+  }
+
   private setupErrorListeners(page: Page): void {
     // JavaScript error detection
     page.on("pageerror", (error) => {
@@ -81,8 +85,7 @@ export class BrowserManager {
         name: error.name,
       });
 
-      // Create error and store in session
-      const webError = this.errorDetection.createJavaScriptError(
+      const webError = createJavaScriptError(
         error.message,
         error.stack || "No stack trace",
         0,
@@ -91,10 +94,7 @@ export class BrowserManager {
         "high",
       );
 
-      // Store in session
-      if (this.currentSessionId) {
-        this.sessionManager.addError(this.currentSessionId, webError);
-      }
+      this.storeError(webError);
     });
 
     // Console error detection
@@ -105,19 +105,16 @@ export class BrowserManager {
           location: msg.location(),
         });
 
-        const webError = this.errorDetection.createJavaScriptError(
+        const webError = createJavaScriptError(
           msg.text(),
           `Console error at ${msg.location()?.url}:${msg.location()?.lineNumber}:${msg.location()?.columnNumber}`,
           msg.location()?.lineNumber || 0,
           msg.location()?.columnNumber || 0,
           page.url(),
-          "medium", // Console errors might be less critical
+          "medium",
         );
 
-        // Store in session
-        if (this.currentSessionId) {
-          this.sessionManager.addError(this.currentSessionId, webError);
-        }
+        this.storeError(webError);
       }
     });
 
@@ -130,18 +127,15 @@ export class BrowserManager {
           statusText: response.statusText(),
         });
 
-        const webError = this.errorDetection.createNetworkError(
+        const webError = createNetworkError(
           `HTTP ${response.status()}: ${response.statusText()}`,
           response.url(),
-          0, // Response time would need tracking
+          0,
           response.status(),
           response.status() >= 500 ? "high" : "medium",
         );
 
-        // Store in session
-        if (this.currentSessionId) {
-          this.sessionManager.addError(this.currentSessionId, webError);
-        }
+        this.storeError(webError);
       }
     });
 
@@ -152,8 +146,7 @@ export class BrowserManager {
         failure: request.failure()?.errorText,
       });
 
-      // Create network error and store in session
-      const webError = this.errorDetection.createNetworkError(
+      const webError = createNetworkError(
         request.failure()?.errorText || "Request failed",
         request.url(),
         0,
@@ -161,10 +154,7 @@ export class BrowserManager {
         "high",
       );
 
-      // Store in session
-      if (this.currentSessionId) {
-        this.sessionManager.addError(this.currentSessionId, webError);
-      }
+      this.storeError(webError);
     });
   }
 
