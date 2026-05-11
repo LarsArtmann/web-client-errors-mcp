@@ -6,15 +6,15 @@ This document defines the branching and development workflow for the Web Client 
 
 ## Branch Types
 
-| Branch Pattern | Purpose | Lifespan | Example |
-|----------------|---------|----------|---------|
-| `main` | Production-ready code | Permanent | `main` |
-| `feature/*` | New features | Until merged | `feature/session-persistence` |
-| `fix/*` | Bug fixes | Until merged | `fix/browser-crash-on-timeout` |
-| `refactor/*` | Code improvements | Until merged | `refactor/error-types` |
-| `docs/*` | Documentation updates | Until merged | `docs/api-reference` |
-| `chore/*` | Maintenance tasks | Until merged | `chore/update-deps` |
-| `hotfix/*` | Production emergency fixes | Until merged | `hotfix/critical-memory-leak` |
+| Branch Pattern | Purpose                    | Lifespan     | Example                        |
+| -------------- | -------------------------- | ------------ | ------------------------------ |
+| `main`         | Production-ready code      | Permanent    | `main`                         |
+| `feature/*`    | New features               | Until merged | `feature/session-persistence`  |
+| `fix/*`        | Bug fixes                  | Until merged | `fix/browser-crash-on-timeout` |
+| `refactor/*`   | Code improvements          | Until merged | `refactor/error-types`         |
+| `docs/*`       | Documentation updates      | Until merged | `docs/api-reference`           |
+| `chore/*`      | Maintenance tasks          | Until merged | `chore/update-deps`            |
+| `hotfix/*`     | Production emergency fixes | Until merged | `hotfix/critical-memory-leak`  |
 
 ## Workflow
 
@@ -77,17 +77,17 @@ Format: `<type>(<scope>): <description>`
 
 ### Types
 
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `refactor` | Code refactoring |
-| `docs` | Documentation changes |
-| `style` | Formatting, no code change |
-| `test` | Adding/updating tests |
-| `chore` | Maintenance, dependencies |
-| `perf` | Performance improvement |
-| `ci` | CI/CD changes |
+| Type       | Description                |
+| ---------- | -------------------------- |
+| `feat`     | New feature                |
+| `fix`      | Bug fix                    |
+| `refactor` | Code refactoring           |
+| `docs`     | Documentation changes      |
+| `style`    | Formatting, no code change |
+| `test`     | Adding/updating tests      |
+| `chore`    | Maintenance, dependencies  |
+| `perf`     | Performance improvement    |
+| `ci`       | CI/CD changes              |
 
 ### Examples
 
@@ -113,16 +113,16 @@ chore(deps): update playwright to v1.58
 
 ### PR Labels
 
-| Label | Purpose |
-|-------|---------|
-| `breaking` | Contains breaking changes |
-| `feature` | New feature |
-| `bugfix` | Bug fix |
-| `documentation` | Docs only |
-| `dependencies` | Dependency updates |
-| `refactoring` | Code improvement |
-| `hotfix` | Production emergency |
-| `needs-review` | Awaiting review |
+| Label           | Purpose                   |
+| --------------- | ------------------------- |
+| `breaking`      | Contains breaking changes |
+| `feature`       | New feature               |
+| `bugfix`        | Bug fix                   |
+| `documentation` | Docs only                 |
+| `dependencies`  | Dependency updates        |
+| `refactoring`   | Code improvement          |
+| `hotfix`        | Production emergency      |
+| `needs-review`  | Awaiting review           |
 
 ## CI/CD Pipeline
 
@@ -160,15 +160,15 @@ git push origin main --tags
 
 ## Quick Reference
 
-| Action | Command |
-|--------|---------|
-| Start new feature | `git checkout -b feature/name` |
-| Keep updated | `git rebase origin/main` |
-| Commit changes | `git commit -m "type: description"` |
-| Push branch | `git push -u origin HEAD` |
-| Create PR | `gh pr create` |
-| Update PR | `git push origin HEAD` |
-| Merge PR | `gh pr merge --squash` |
+| Action            | Command                             |
+| ----------------- | ----------------------------------- |
+| Start new feature | `git checkout -b feature/name`      |
+| Keep updated      | `git rebase origin/main`            |
+| Commit changes    | `git commit -m "type: description"` |
+| Push branch       | `git push -u origin HEAD`           |
+| Create PR         | `gh pr create`                      |
+| Update PR         | `git push origin HEAD`              |
+| Merge PR          | `gh pr merge --squash`              |
 
 ---
 

@@ -175,10 +175,10 @@ The MCP server exposes these resources for AI agents:
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
-| [docs/BRANCHING-FLOW.md](docs/BRANCHING-FLOW.md) | Branching strategy |
+| Document                                         | Description             |
+| ------------------------------------------------ | ----------------------- |
+| [CONTRIBUTING.md](CONTRIBUTING.md)               | Contribution guidelines |
+| [docs/BRANCHING-FLOW.md](docs/BRANCHING-FLOW.md) | Branching strategy      |
 
 ## 📄 License
 

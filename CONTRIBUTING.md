@@ -54,16 +54,16 @@ gh pr create
 
 ### Types
 
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
+| Type       | Description      |
+| ---------- | ---------------- |
+| `feat`     | New feature      |
+| `fix`      | Bug fix          |
 | `refactor` | Code refactoring |
-| `docs` | Documentation |
-| `test` | Tests |
-| `chore` | Maintenance |
-| `perf` | Performance |
-| `ci` | CI/CD |
+| `docs`     | Documentation    |
+| `test`     | Tests            |
+| `chore`    | Maintenance      |
+| `perf`     | Performance      |
+| `ci`       | CI/CD            |
 
 ### Examples
 
@@ -159,6 +159,7 @@ src/
 Clear description of the bug
 
 **Steps to Reproduce**
+
 1. Go to '...'
 2. Click on '...'
 3. See error
@@ -170,6 +171,7 @@ What should happen
 What actually happens
 
 **Environment**
+
 - OS: [e.g., macOS]
 - Node: [e.g., 20.0.0]
 - Bun: [e.g., 1.0.0]
