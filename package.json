@@ -37,14 +37,14 @@
     "prepare": "npm run build"
   },
   "dependencies": {
-    "@logtape/logtape": "^2.0.9",
+    "@logtape/logtape": "^2.1.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "playwright": "^1.60.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.8.0",
+    "@types/node": "^25.9.0",
     "@typescript-eslint/eslint-plugin": "^8.59.3",
     "@typescript-eslint/parser": "^8.59.3",
     "eslint": "^10.4.0",
